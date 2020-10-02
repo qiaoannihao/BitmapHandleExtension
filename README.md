@@ -3,3 +3,5 @@
 
 # 题目来源
 https://github.com/gzr2017/ImageProcessing100Wen
+
+## 主要代码在BitmapHandleExtension.cs

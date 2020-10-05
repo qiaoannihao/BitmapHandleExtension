@@ -27,3 +27,4 @@ G:\desk\视觉\视觉学习\视觉学习_dotnetcore\obj\Debug\netcoreapp3.1\视�
 G:\desk\视觉\视觉学习\视觉学习_dotnetcore\obj\Debug\netcoreapp3.1\视觉学习_dotnetcore.dll
 G:\desk\视觉\视觉学习\视觉学习_dotnetcore\obj\Debug\netcoreapp3.1\视觉学习_dotnetcore.pdb
 G:\desk\视觉\视觉学习\视觉学习_dotnetcore\obj\Debug\netcoreapp3.1\视觉学习_dotnetcore.genruntimeconfig.cache
+G:\desk\视觉\视觉学习\视觉学习_dotnetcore\obj\Debug\netcoreapp3.1\视觉学习_dotnetcore.csprojAssemblyReference.cache

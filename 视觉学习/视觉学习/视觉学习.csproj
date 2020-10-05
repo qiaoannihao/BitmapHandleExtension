@@ -49,11 +49,17 @@
     <Compile Include="ArrExtension.cs" />
     <Compile Include="BitmapExtension.cs" />
     <Compile Include="BitmapHandleExtension.cs" />
+    <Compile Include="DoubleExtension.cs" />
+    <Compile Include="FloatExtension.cs" />
     <Compile Include="MathFunction.cs" />
+    <Compile Include="Matrix.cs" />
     <Compile Include="MoveWindowFunction.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ShapeCreateTool.cs" />
+    <Compile Include="TwoDimensionaltransform.cs" />
+    <Compile Include="ThreeDimensionaltransform.cs" />
+    <Compile Include="ValueExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

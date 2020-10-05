@@ -130,16 +130,40 @@ namespace 视觉学习
             //    s.Save(string.Format("{0}_Chart.bmp", index));
             //});
             //24
-            Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori_dark.jpg");
-            var rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
-            index = 21;
-            bitmap.NormalizationHistogram(rectangle, 0, 255, s =>
-            {
-                s.Save(string.Format("{0}_chart.bmp", index));
-            });
-
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori_gamma.jpg");
+            //var rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            //index = 24;
+            //bitmap.GammaCorrection(rectangle, 1, 2.2);
+            //25
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            //index = 25;
+            //bitmap.NearestNeighborInterpolation(1.5, 1.5).Save(string.Format("{0}_zoom.bmp", index));
+            //26
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            //index = 26;
+            //bitmap.BilinearInterpolation(1.5, 1.5).Save(string.Format("{0}_zoom.bmp", index));
+            //27
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            //index = 27;
+            //bitmap.BicubicInterpolation(1.5, 1.5).Save(string.Format("{0}_zoom.bmp", index));
+            //28
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            //index = 28;
+            //bitmap.Translation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 30, -30).Save(string.Format("{0}_ttranslation.bmp", index));
+            //29
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            //index = 29;
+            //var resultImage = bitmap.Scale(1.3, 4.0 / 5);
+            //resultImage.Save(string.Format("{0}_scale.bmp", index));
+            //resultImage = resultImage.Translation(30, -30);
+            //resultImage.Save(string.Format("{0}_scale_translation.bmp", index));
+            //30
+            Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            index = 30;
+            var resultImage = bitmap.Rotate(-30, 0, 30);
+            resultImage.Save(string.Format("{0}_rotate.bmp", index));
             #endregion
-            bitmap.Save(string.Format("{0}.bmp", index));
+
         }
     }
 }

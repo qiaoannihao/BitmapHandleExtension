@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -271,7 +272,6 @@ namespace 视觉学习
                 bitmap.Max(area);
             });
         }
-
         public static void GaussianFilter(this Bitmap bitmap, Rectangle rectangle, int windowWidth, int windowHeight, double sigma)
         {
             double rSum = 0;
@@ -817,9 +817,220 @@ namespace 视觉学习
             bitmap.Flat(rectangle, m0, s0);
             bitmap.Histogram(rectangle, callback);
         }
-        public static void CammaCorrection(this Bitmap bitmap, Rectangle rectangle)
+        public static void GammaCorrection(this Bitmap bitmap, Rectangle rectangle, double c, double g)
         {
+            double cReciprocal = 1 / c;
+            double gReciprocal = 1 / g;
+            Func<double, double> gammaCalibration = (value) =>
+             {
+                 return cReciprocal * Math.Pow(value, gReciprocal);
+             };
+            bitmap.HandleImage(rectangle, (x, y, red, green, blue, setter) =>
+            {
+                setter(
+                    (byte)(gammaCalibration(red * 1.0 / 255) * 255),
+                    (byte)(gammaCalibration(green * 1.0 / 255) * 255),
+                    (byte)(gammaCalibration(blue * 1.0 / 255) * 255));
+            });
+        }
+        public static Bitmap NearestNeighborInterpolation(this Bitmap bitmap, double zoomWidthRate, double zoomHeightRate)
+        {
+            Bitmap newBitmap = new Bitmap(
+                (int)(bitmap.Width * zoomWidthRate),
+                (int)(bitmap.Height * zoomHeightRate),
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            newBitmap.HandleImage(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height), (x, y, setter) =>
+               {
+                   bitmap.GetPi((int)(x / zoomWidthRate), (int)(y / zoomHeightRate), (red, green, blue) =>
+                   {
+                       setter(red, green, blue);
+                   });
+               });
+            return newBitmap;
+        }
+        public static Bitmap BilinearInterpolation(this Bitmap bitmap, double zoomWidthRate, double zoomHeightRate)
+        {
+            Bitmap newBitmap = new Bitmap(
+                (int)(bitmap.Width * zoomWidthRate),
+                (int)(bitmap.Height * zoomHeightRate),
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            double dx = 0, dy = 0;
+            double _1_dx = 0, _1_dy = 0;
+            double x0, y0, x0_1, y0_1;
+            double rSum = 0;
+            double gSum = 0;
+            double bSum = 0;
+            newBitmap.HandleImage(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height), (x, y, setter) =>
+                {
+                    rSum = 0;
+                    gSum = 0;
+                    bSum = 0;
+                    x0 = x / zoomWidthRate;
+                    y0 = y / zoomHeightRate;
+                    x0_1 = x0 + 1;
+                    y0_1 = y0 + 1;
+                    dx = x0 - ((int)x0);
+                    dy = y0 - ((int)y0);
+                    _1_dx = 1 - dx;
+                    _1_dy = 1 - dy;
+                    if (x0_1 > bitmap.Width - 1)
+                    {
+                        x0_1 = x0;
+                    }
+                    if (y0_1 > bitmap.Height - 1)
+                    {
+                        y0_1 = y0;
+                    }
+                    bitmap.GetPi((int)x0, (int)y0, (r, g, b) =>
+                    {
+                        rSum += _1_dx * _1_dy * r;
+                        gSum += _1_dx * _1_dy * g;
+                        bSum += _1_dx * _1_dy * b;
+                    });
+                    bitmap.GetPi((int)x0_1, (int)y0, (r, g, b) =>
+                    {
+                        rSum += dx * _1_dy * r;
+                        gSum += dx * _1_dy * g;
+                        bSum += dx * _1_dy * b;
+                    });
+                    bitmap.GetPi((int)x0, (int)y0_1, (r, g, b) =>
+                    {
+                        rSum += _1_dx * dy * r;
+                        gSum += _1_dx * dy * g;
+                        bSum += _1_dx * dy * b;
+                    });
+                    bitmap.GetPi((int)x0_1, (int)y0_1, (r, g, b) =>
+                    {
+                        rSum += dx * dy * r;
+                        gSum += dx * dy * g;
+                        bSum += dx * dy * b;
+                    });
+                    setter((byte)rSum, (byte)gSum, (byte)bSum);
+                });
+            return newBitmap;
+        }
+        public static Bitmap BicubicInterpolation(this Bitmap bitmap, double zoomWidthRate, double zoomHeightRate)
+        {
+            double a = -1;
+            double integer;
+            double powerTmp;
+            Func<double, double> func = value =>
+            {
+                integer = value;
+                if (integer < 0)
+                {
+                    integer = -value;
+                }
+                if (value <= 1 && value >= -1)
+                {
+                    powerTmp = integer * integer;
+                    return (a + 2) * integer * powerTmp - (a + 3) * powerTmp + 1;
+                }
+                else if (value <= 2 && value >= -2)
+                {
+                    powerTmp = integer * integer;
+                    return a * integer * powerTmp - 5 * a * powerTmp + 8 * a * integer - 4 * a;
+                }
+                else
+                {
+                    return 0;
+                }
+            };
+            Bitmap newBitmap = new Bitmap(
+                (int)(bitmap.Width * zoomWidthRate),
+                (int)(bitmap.Height * zoomHeightRate),
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            double dx, dy = 0;
+            double rSum = 0;
+            double gSum = 0;
+            double bSum = 0;
+            int yOutTmp = -1, yTmp = -2;
+            double wy = 0, wx, wSum, wMul;
+            newBitmap.HandleImage(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height),
+                (x, y, setter) =>
+                {
+                    wSum = 0;
+                    rSum = 0;
+                    gSum = 0;
+                    bSum = 0;
+                    if (y != yOutTmp)
+                    {
+                        dy = y / zoomHeightRate;
+                    }
+                    yTmp = -2;
+                    dx = x / zoomWidthRate;
+                    bitmap.PixForeach(new Rectangle((int)dx - 1, (int)dy - 1, 4, 4), (xGetter, yGetter, r, g, b) =>
+                    {
+                        if (yTmp != yGetter)
+                        {
+                            wy = func(dy - yGetter);
+                        }
+                        wx = func(dx - xGetter);
+                        wMul = wx * wy;
+                        wSum += wMul;
+                        rSum += wMul * r;
+                        gSum += wMul * g;
+                        bSum += wMul * b;
+                        yTmp = yGetter;
+                    });
+                    yOutTmp = y;
+                    setter((byte)(rSum / wSum).FitRange(0, 255), (byte)(gSum / wSum).FitRange(0, 255), (byte)(bSum / wSum).FitRange(0, 255));
+                });
+            return newBitmap;
+        }
+        public static Bitmap Translation(this Bitmap bitmap, int offsetX, int offsetY)
+        {
+            return bitmap.Translation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), offsetX, offsetY);
+        }
+        public static Bitmap Translation(this Bitmap bitmap, Rectangle rectangle, int offsetX, int offsetY)
+        {
+            return bitmap.AfineTransformations(1, 0, 0, 1, offsetX, offsetY);
+            Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            int targetX, targetY;
+            bitmap.PixForeach(rectangle, (x, y, r, g, b) =>
+            {
+                targetX = x + offsetX;
+                targetY = y + offsetY;
+                if (rectangle.Contains(targetX, targetY))
+                {
+                    newBitmap.SetPi(targetX, targetY, r, g, b);
+                }
+            });
 
+            return newBitmap;
+        }
+        public static Bitmap Scale(this Bitmap bitmap, double xRate, double yRate)
+        {
+            return bitmap.NearestNeighborInterpolation(xRate, yRate);
+        }
+
+        public static Bitmap Rotate(this Bitmap bitmap, double angle, int offsetX, int offsetY)
+        {
+            double radian = angle / 180 * Math.PI;
+            double cos = Math.Cos(radian);
+            double sin = Math.Sin(radian);
+            return bitmap.AfineTransformations(cos, -sin, sin, cos, offsetX, offsetY);
+        }
+
+        public static Bitmap AfineTransformations(this Bitmap bitmap, double a, double b, double c, double d, int offsetX, int offsetY)
+        {
+            Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            int originX, originY;
+            double det = 1 / (a * d - b * c);
+            var rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            newBitmap.HandleImage(rectangle, (x, y, setter) =>
+             {
+                 originX = (int)(det * (d * x - b * y) + 0.5) - offsetX;
+                 originY = (int)(det * (-c * x + a * y) + 0.5) - offsetY;
+                 if (rectangle.Contains(originX, originY))
+                 {
+                     bitmap.GetPi(originX, originY, (red, green, blue) =>
+                      {
+                          setter(red, green, blue);
+                      });
+                 }
+             });
+            return newBitmap;
         }
     }
 }

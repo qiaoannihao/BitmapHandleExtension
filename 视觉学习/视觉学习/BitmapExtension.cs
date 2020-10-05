@@ -216,6 +216,23 @@ namespace Common
             action((x, y) => bitmap.GetPi(x, y));
         }
         /// <summary>
+        /// 获取多个像素点的颜色
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public static void GetPi(this Bitmap bitmap, int x, int y, Action<byte, byte, byte> callback)
+        {
+            var res = bitmap.LockBits(new Rectangle(x, y, 1, 1), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            unsafe
+            {
+                byte* first = (byte*)res.Scan0;
+                callback(*(first + 2), *(first + 1), *first);
+            }
+            bitmap.UnlockBits(res);
+        }
+        /// <summary>
         /// 获取或设置多个像素点的颜色
         /// </summary>
         /// <param name="bitmap"></param>
@@ -225,6 +242,17 @@ namespace Common
         public static void GetSetPix(this Bitmap bitmap, Action<Func<int, int, Color>, Action<int, int, Color>> action)
         {
             action((x, y) => bitmap.GetPi(x, y), (x, y, color) => bitmap.SetPi(x, y, color));
+        }
+        /// <summary>
+        /// 获取或设置多个像素点的颜色
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public static void GetSetPix(this Bitmap bitmap, Action<Action<int, int, Action<byte, byte, byte>>, Action<int, int, byte, byte, byte>> action)
+        {
+            action((x, y, callback) => bitmap.GetPi(x, y, callback), (x, y, r, g, b) => bitmap.SetPi(x, y, r, g, b));
         }
         /// <summary>
         /// 读取图片
@@ -340,6 +368,22 @@ namespace Common
         /// <param name="handleFunc">row column r g b</param>
         public static void PixForeach(this Bitmap bitmap, Rectangle rectangle, Action<int, int, byte, byte, byte> handleFunc)
         {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
@@ -387,6 +431,22 @@ namespace Common
         /// <param name="handleFunc">column row r g b</param>
         public static void HandleImage(this Bitmap bitmap, Rectangle rectangle, Action<int, int, byte, byte, byte, Action<byte, byte, byte>> handleFunc)
         {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
@@ -410,6 +470,125 @@ namespace Common
                             rectangle.X + j, rectangle.Y + i,
                             *(currentPoint + 2), *(currentPoint + 1), *(currentPoint),
                             action);
+                        currentPoint += 3;
+                    }
+                    outCirclePointer += stride;
+                }
+            }
+            bitmap.UnlockBits(bitmapData);
+        }
+
+        /// <summary>
+        /// 处理每个像素
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="handleFunc">column row r g b</param>
+        public static void HandleImage(this Bitmap bitmap,
+            Rectangle rectangle,
+            int leftWidth, int rightWidth, int topHeight, int bottomHeight,
+            Func<byte> fillValueFunc,
+            Action<int, int, Action<Action<int, int, byte, byte, byte>>, Action<byte, byte, byte>> handleFunc,
+            int windowPixLocationType = 0, bool outReturnFlag = true)
+        {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
+            BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            unsafe
+            {
+                var fillValue = fillValueFunc();
+                int width = bitmapData.Width;
+                int height = bitmapData.Height;
+                int stride = bitmapData.Stride;
+                byte* outCirclePointer = (byte*)bitmapData.Scan0;
+                byte* currentPoint = null, currentPointTmp;
+
+                Action<byte, byte, byte> action = (r, g, b) =>
+                {
+                    *(currentPoint + 2) = r;
+                    *(currentPoint + 1) = g;
+                    *(currentPoint) = b;
+                };
+                int y, yy = 0, x, xx = 0, dx = 0, dy = 0,
+                    windowHlafWidthPointerStep, windowHlafHeightPointerStep,
+                    currentWidthPointerOffset, currentHeightPointerOffset;
+                windowHlafWidthPointerStep = leftWidth * 3;
+                windowHlafHeightPointerStep = topHeight * stride;
+                Func<int> xxGetter = () =>
+                {
+                    return xx;
+                };
+                Func<int> yyGetter = () =>
+                {
+                    return yy;
+                };
+                if (windowPixLocationType == 1)
+                {
+                    xxGetter = () =>
+                    {
+                        return xx + leftWidth;
+                    };
+                    yyGetter = () =>
+                    {
+                        return yy + topHeight;
+                    };
+                }
+                else if (windowPixLocationType == 2)
+                {
+                    xxGetter = () =>
+                    {
+                        return dx;
+                    };
+                    yyGetter = () =>
+                    {
+                        return dy;
+                    };
+                }
+                for (y = 0; y < height; y++)
+                {
+                    currentPoint = outCirclePointer;
+                    for (x = 0; x < width; x++)
+                    {
+                        handleFunc(x, y, ss =>
+                        {
+                            currentHeightPointerOffset = -windowHlafHeightPointerStep;
+                            for (yy = -topHeight; yy < bottomHeight + 1; yy++)
+                            {
+                                currentWidthPointerOffset = -windowHlafWidthPointerStep;
+                                for (xx = -leftWidth; xx < rightWidth + 1; xx++)
+                                {
+                                    dx = x + xx;
+                                    dy = y + yy;
+                                    if (dx < rectangle.X || dx > rectangle.Right - 1 || dy < rectangle.Y || dy > rectangle.Bottom - 1)
+                                    {
+                                        if (outReturnFlag)
+                                        {
+                                            ss(xxGetter(), yyGetter(), fillValue, fillValue, fillValue);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        currentPointTmp = currentPoint + currentWidthPointerOffset + currentHeightPointerOffset;
+                                        ss(xxGetter(), yyGetter(), *(currentPointTmp + 2), *(currentPointTmp + 1), *(currentPointTmp));
+                                    }
+                                    currentWidthPointerOffset += 3;
+                                }
+                                currentHeightPointerOffset += stride;
+                            }
+                        }, action);
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;
@@ -442,7 +621,6 @@ namespace Common
                     *(currentPoint + 1) = g;
                     *(currentPoint) = b;
                 };
-
                 int y, yy = 0, x, xx = 0, dx = 0, dy = 0, halfWidth, halfHeight,
                     windowHlafWidthPointerStep, windowHlafHeightPointerStep,
                     currentWidthPointerOffset, currentHeightPointerOffset;
@@ -526,6 +704,22 @@ namespace Common
         /// <param name="handleFunc">column row r g b</param>
         public static void HandleImage(this Bitmap bitmap, Rectangle rectangle, Action<int, int, Action<byte, byte, byte>> handleFunc)
         {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
@@ -550,7 +744,7 @@ namespace Common
                             action);
                         currentPoint += 3;
                     }
-                    currentPoint += stride;
+                    outCirclePointer += stride;
                 }
             }
             bitmap.UnlockBits(bitmapData);
@@ -595,6 +789,22 @@ namespace Common
         /// <param name="oneRowEvt">row buffer</param>
         public static void RowForeach(this Bitmap bitmap, bool isPositive, Rectangle rectangle, Func<byte, byte, byte, byte> rgbHandle, Action<int, byte[], Action> oneRowEvt)
         {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
@@ -851,6 +1061,22 @@ namespace Common
         /// <returns></returns>
         public static void ForeachBevel(this Bitmap bitmap, Rectangle rectangle, Func<byte, byte, byte, byte> selectChannel, Action<byte, byte> callback)
         {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.X > bitmap.Width - 1)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Y > bitmap.Height - 1)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
             unsafe
             {

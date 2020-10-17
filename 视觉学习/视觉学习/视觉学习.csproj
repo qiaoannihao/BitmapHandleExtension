@@ -49,8 +49,13 @@
     <Compile Include="ArrExtension.cs" />
     <Compile Include="BitmapExtension.cs" />
     <Compile Include="BitmapHandleExtension.cs" />
+    <Compile Include="ComplexSelf.cs" />
+    <Compile Include="Complex.cs" />
+    <Compile Include="ComplexSelfExtension.cs" />
     <Compile Include="DoubleExtension.cs" />
     <Compile Include="FloatExtension.cs" />
+    <Compile Include="FunctionalExperssionImageHandle.cs" />
+    <Compile Include="InverseDiscreteCosineTransformationExtension.cs" />
     <Compile Include="MathFunction.cs" />
     <Compile Include="Matrix.cs" />
     <Compile Include="MoveWindowFunction.cs" />

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
@@ -294,6 +295,7 @@ namespace 视觉学习
                 });
                 bitmap.SetPi(x, y, (byte)rSum, (byte)gSum, (byte)bSum);
             }, 1, false);
+
         }
         public static void MedianFilter(this Bitmap bitmap, Rectangle rectangle, int windowWidth, int windowHeight)
         {
@@ -448,7 +450,7 @@ namespace 视觉学习
                 bitmap.SetPi(x, y, (byte)diff, (byte)diff, (byte)diff);
             }, 2);
         }
-        public static void SobelVFilter(this Bitmap bitmap, Rectangle rectangle, int windowWidth, int windowHeight)
+        public static void SobelVFilter(this Bitmap bitmap, Rectangle rectangle)
         {
             int[][] coefficient = new int[][]
             {
@@ -459,7 +461,7 @@ namespace 视觉学习
             int sum = 0;
             byte value;
             Bitmap newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            newBitmap.HandleImage(rectangle, windowWidth, windowHeight, () => 0, (x, y, getter, setter) =>
+            newBitmap.HandleImage(rectangle, 3, 3, () => 0, (x, y, getter, setter) =>
             {
                 sum = 0;
                 getter((xx, yy, r, g, b) =>
@@ -478,7 +480,7 @@ namespace 视觉学习
                 bitmap.SetPi(x, y, (byte)sum, (byte)sum, (byte)sum);
             }, 1, false);
         }
-        public static void SobelHFilter(this Bitmap bitmap, Rectangle rectangle, int windowWidth, int windowHeight)
+        public static void SobelHFilter(this Bitmap bitmap, Rectangle rectangle)
         {
             int[][] coefficient = new int[][]
            {
@@ -489,7 +491,7 @@ namespace 视觉学习
             int sum = 0;
             byte value;
             Bitmap newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            newBitmap.HandleImage(rectangle, windowWidth, windowHeight, () => 0, (x, y, getter, setter) =>
+            newBitmap.HandleImage(rectangle, 3, 3, () => 0, (x, y, getter, setter) =>
             {
                 sum = 0;
                 getter((xx, yy, r, g, b) =>
@@ -996,14 +998,12 @@ namespace 视觉学习
                     newBitmap.SetPi(targetX, targetY, r, g, b);
                 }
             });
-
             return newBitmap;
         }
         public static Bitmap Scale(this Bitmap bitmap, double xRate, double yRate)
         {
             return bitmap.NearestNeighborInterpolation(xRate, yRate);
         }
-
         public static Bitmap Rotate(this Bitmap bitmap, double angle, int offsetX, int offsetY)
         {
             double radian = angle / 180 * Math.PI;
@@ -1011,7 +1011,41 @@ namespace 视觉学习
             double sin = Math.Sin(radian);
             return bitmap.AfineTransformations(cos, -sin, sin, cos, offsetX, offsetY);
         }
-
+        public static Bitmap Incline(this Bitmap bitmap, int tx, int ty)
+        {
+            Func<int, int, int> xAction, yAction;
+            int newBitmapWidth = bitmap.Width, newBitmapHeight = bitmap.Height;
+            if (tx > 0)
+            {
+                newBitmapWidth += tx;
+                xAction = (value, offset) => value + offset;
+            }
+            else
+            {
+                newBitmapWidth -= tx;
+                xAction = (value, offset) => value - tx - offset;
+            }
+            if (ty > 0)
+            {
+                newBitmapHeight += ty;
+                yAction = (value, offset) => value + offset;
+            }
+            else
+            {
+                newBitmapHeight -= ty;
+                yAction = (value, offset) => value - tx - offset;
+            }
+            Bitmap newBitmap = new Bitmap(newBitmapWidth, newBitmapHeight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            newBitmap.CheckAfineTransformations(0, bitmap.Width, 0, bitmap.Height,
+                1, tx * 1.0 / bitmap.Height, ty * 1.0 / bitmap.Width, 1, 0, 0, (x, y, setter) =>
+            {
+                bitmap.GetPi(x, y, (r, g, b) =>
+                {
+                    setter(r, g, b);
+                });
+            });
+            return newBitmap;
+        }
         public static Bitmap AfineTransformations(this Bitmap bitmap, double a, double b, double c, double d, int offsetX, int offsetY)
         {
             Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
@@ -1031,6 +1065,344 @@ namespace 视觉学习
                  }
              });
             return newBitmap;
+        }
+        public static void CheckAfineTransformations(this Bitmap bitmap, int startX, int endX, int startY, int endY,
+            double a, double b, double c, double d, int offsetX, int offsetY, Action<int, int, Action<byte, byte, byte>> callback)
+        {
+            int originX, originY;
+            double det = 1 / (a * d - b * c);
+            var rectangle = new Rectangle(0, 0, endX - startX, endY - startY);
+            bitmap.HandleImage(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                (x, y, setter) =>
+                {
+                    originX = (int)(det * (d * x - b * y) + 0.5) - offsetX;
+                    originY = (int)(det * (-c * x + a * y) + 0.5) - offsetY;
+                    if (rectangle.Contains(originX, originY))
+                    {
+                        callback(originX, originY, setter);
+                    }
+                });
+        }
+        /// <summary>
+        /// 傅立叶变换
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="selectChannel"></param>
+        /// <param name="spectrogram"></param>
+        /// <returns></returns>
+        public static ComplexSelf[][] DFT(this Bitmap bitmap, Func<byte, byte, byte, byte> selectChannel, Action<Bitmap> spectrogram)
+        {
+            Action<int, int, ComplexSelf> setSpectrogram;
+            Bitmap newBitmap = null;
+            double count = bitmap.Width * bitmap.Height;
+            if (spectrogram == null)
+            {
+                setSpectrogram = (xx, yy, value) => { };
+            }
+            else
+            {
+                newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                setSpectrogram = (xx, yy, value) =>
+                {
+                    value.Modules();
+                    byte gray = (byte)((value.Modulus / count).FitRange(0, 255));
+                    newBitmap.SetPi(xx, yy, gray, gray, gray);
+                };
+            }
+            ComplexSelf[][] complices = new ComplexSelf[bitmap.Height][];
+            int y, x;
+            byte grayValue;
+            double angle = 0;
+            double _2Pi = Math.PI + Math.PI;
+            for (y = 0; y < complices.Length; y++)
+            {
+                var item = new ComplexSelf[bitmap.Width];
+                complices[y] = item;
+                for (x = 0; x < bitmap.Width; x++)
+                {
+                    ComplexSelf sum = new ComplexSelf();
+                    item[x] = sum;
+                    bitmap.PixForeach((xGrayImage, yGrayImage, r, g, b) =>
+                    {
+                        grayValue = selectChannel(r, g, b);
+                        angle = -_2Pi * (x * xGrayImage * 1.0 / bitmap.Width + y * yGrayImage * 1.0 / bitmap.Height);
+                        sum += (new ComplexSelf(Math.Cos(angle), Math.Sin(angle)) * grayValue);
+                    });
+                    setSpectrogram(x, y, sum);
+                }
+            }
+            if (spectrogram != null)
+            {
+                spectrogram(newBitmap);
+            }
+            return complices;
+        }
+        /// <summary>
+        /// 离散余弦变换DCT
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="T"></param>
+        /// <returns></returns>
+        public static double[][][] DiscreteCosineTransformation(this Bitmap bitmap, int T)
+        {
+            double[][][] buffer = new double[bitmap.Height][][];
+            double _1__sqrt2 = Math.Sqrt(2) / 2;
+            Func<int, double> cFunc = s => s == 0 ? _1__sqrt2 : 1;
+            double _pi__2T = Math.PI / (T << 1);
+            double _2__T = 2.0 / T;
+            double f = 0;
+            int y, x, channel, u, v;
+            double cv, cu;
+            Rectangle location = new Rectangle(0, 0, T, T);
+            for (y = 0; y < bitmap.Height; y++)
+            {
+                var item = new double[bitmap.Width][];
+                buffer[y] = item;
+                for (x = 0; x < bitmap.Width; x++)
+                {
+                    item[x] = new double[3];
+                }
+            }
+            for (y = 0; y < bitmap.Height; y += T)
+            {
+                var item = buffer[y];
+                for (x = 0; x < bitmap.Width; x += T)
+                {
+                    var item1 = item[x];
+                    for (channel = 0; channel < 3; channel++)
+                    {
+                        for (u = 0; u < T; u++)
+                        {
+                            for (v = 0; v < T; v++)
+                            {
+                                f = 0;
+                                cv = cFunc(v);
+                                cu = cFunc(u);
+                                location.X = x;
+                                location.Y = y;
+                                bitmap.PixForeach(channel, location, (_x, _y, value) =>
+                                {
+                                    f += cv
+                                    * cu
+                                    * value
+                                    * Math.Cos((((_x - x) << 1) + 1) * u * _pi__2T)
+                                    * Math.Cos((((_y - y) << 1) + 1) * v * _pi__2T);
+                                });
+                                buffer[y + v][x + u][channel] = f * _2__T;
+                            }
+                        }
+                    }
+                }
+            }
+            return buffer;
+        }
+        /// <summary>
+        /// 均方误差
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="compareImage"></param>
+        /// <param name="rectangle"></param>
+        public static double MSE(this Bitmap bitmap, Bitmap compareImage, Rectangle rectangle)
+        {
+            int sum = 0;
+            int diff = 0;
+            bitmap.HandleTwoImage(compareImage, rectangle,
+                (x, y, r1, g1, b1, r2, g2, b2, setter1, setter2) =>
+                {
+                    diff = r1 - r2;
+                    sum += diff * diff;
+                    diff = g1 - g2;
+                    sum += diff * diff;
+                    diff = b1 - b2;
+                    sum += diff * diff;
+                });
+            return sum * 1.0 / rectangle.Width / rectangle.Height;
+        }
+        /// <summary>
+        /// 峰值信噪比
+        /// </summary>
+        /// <param name="bitmap"></param>
+        public static double PSNR(this Bitmap bitmap, Bitmap compareImage, Rectangle rectangle)
+        {
+            double vMax = 255;
+            return 10 * Math.Log10(vMax * vMax / bitmap.MSE(compareImage, rectangle));
+        }
+        public static void Canny(this Bitmap bitmap, Rectangle rectangle, int max, int min,
+            Action<Bitmap, Bitmap> callback,
+            Action<Bitmap> callback1,
+            Action<Bitmap> callback2)
+        {
+            bitmap.GaussianFilter(rectangle, 5, 5, 1.4);
+            var bitmapH = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmapH.SobelHFilter(rectangle);
+            var bitmapV = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmapV.SobelVFilter(rectangle);
+
+            Func<double, byte> quantificationFunc = value =>
+            {
+                if (value <= 0.4142 && value > -0.4142)
+                {
+                    return 0;
+                }
+                else if (value < 2.4142 && value > 0.4142)
+                {
+                    return 45;
+                }
+                else if (value > -2.4142 && value <= -0.4142)
+                {
+                    return 90;
+                }
+                return 135;
+            };
+
+            var edgeBitmap = new Bitmap(rectangle.Width, rectangle.Height,
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+            var angleBitmap = new Bitmap(rectangle.Width, rectangle.Height,
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+            byte edgeValue = 0;
+            byte angleValue = 0;
+            bitmapH.HandleTwoImage(bitmapV, rectangle,
+                (x, y, r1, g1, b1, r2, g2, b2, setter1, setter2) =>
+                {
+                    edgeValue = (byte)(Math.Sqrt(r1 * r1 + r2 * r2).FitRange(0, 255));
+                    edgeBitmap.SetPi(x, y, edgeValue, edgeValue, edgeValue);
+
+                    if (r1 == 0)
+                    {
+                        angleValue = quantificationFunc(Math.Atan(r2 * 1.0 / 0.0000001));
+                    }
+                    else
+                    {
+                        angleValue = quantificationFunc(Math.Atan(r2 * 1.0 / r1));
+                    }
+                    angleBitmap.SetPi(x, y, angleValue, angleValue, angleValue);
+                });
+            if (callback != null)
+            {
+                callback(edgeBitmap, angleBitmap);
+            }
+
+            byte value1 = 0, value2 = 0;
+            var newResultBitmap = edgeBitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            angleBitmap.PixForeach(rectangle, (x, y, r, g, b) =>
+            {
+                if (r == 0)
+                {
+                    if (rectangle.Contains(x - 1, y) && rectangle.Contains(x + 1, y))
+                    {
+                        edgeBitmap.GetPi(x - 1, y, (_r, _g, _b) =>
+                        {
+                            value1 = _r;
+                        });
+                        edgeBitmap.GetPi(x + 1, y, (_r, _g, _b) =>
+                          {
+                              value2 = _r;
+                          });
+                        edgeBitmap.GetSetPix(x, y, (_r, _g, _b, setter) =>
+                        {
+                            if (_r < value1 || _r < value2)
+                            {
+                                newResultBitmap.SetPi(x, y, 0, 0, 0);
+                            }
+                        });
+                    }
+                }
+                else if (r == 45)
+                {
+                    if (rectangle.Contains(x - 1, y + 1) && rectangle.Contains(x + 1, y - 1))
+                    {
+                        edgeBitmap.GetPi(x - 1, y + 1, (_r, _g, _b) =>
+                          {
+                              value1 = _r;
+                          });
+                        edgeBitmap.GetPi(x + 1, y - 1, (_r, _g, _b) =>
+                            {
+                                value2 = _r;
+                            });
+                        edgeBitmap.GetSetPix(x, y, (_r, _g, _b, setter) =>
+                        {
+                            if (_r < value1 || _r < value2)
+                            {
+                                newResultBitmap.SetPi(x, y, 0, 0, 0);
+                            }
+                        });
+                    }
+                }
+                else if (r == 90)
+                {
+                    if (rectangle.Contains(x, y - 1) && rectangle.Contains(x, y + 1))
+                    {
+                        edgeBitmap.GetPi(x, y - 1, (_r, _g, _b) =>
+                         {
+                             value1 = _r;
+                         });
+                        edgeBitmap.GetPi(x, y + 1, (_r, _g, _b) =>
+                          {
+                              value2 = _r;
+                          });
+                        edgeBitmap.GetSetPix(x, y, (_r, _g, _b, setter) =>
+                        {
+                            if (_r < value1 || _r < value2)
+                            {
+                                newResultBitmap.SetPi(x, y, 0, 0, 0);
+                            }
+                        });
+                    }
+                }
+                else if (r == 135)
+                {
+                    if (rectangle.Contains(x - 1, y - 1) && rectangle.Contains(x + 1, y + 1))
+                    {
+                        edgeBitmap.GetPi(x - 1, y - 1, (_r, _g, _b) =>
+                           {
+                               value1 = _r;
+                           });
+                        edgeBitmap.GetPi(x + 1, y + 1, (_r, _g, _b) =>
+                            {
+                                value2 = _r;
+                            });
+                        edgeBitmap.GetSetPix(x, y, (_r, _g, _b, setter) =>
+                        {
+                            if (_r < value1 || _r < value2)
+                            {
+                                newResultBitmap.SetPi(x, y, 0, 0, 0);
+                            }
+                        });
+                    }
+                }
+            });
+            if (callback1 != null)
+            {
+                callback1(newResultBitmap);
+            }
+            var newResultBitmap1 = newResultBitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            newResultBitmap.HandleImage(rectangle, 1, 1, 2, 2, () => 0, (x, y, getter, setter) =>
+            {
+                getter((xx, yy, r, g, b) =>
+                {
+                    if (xx == x && yy == y)
+                    {
+                        if (r > max)
+                        {
+                            newResultBitmap1.SetPi(xx, yy, 255, 255, 255);
+                        }
+                        else if (r < min)
+                        {
+                            newResultBitmap1.SetPi(xx, yy, 0, 0, 0);
+                        }
+                    }
+                    if (r > max)
+                    {
+                        newResultBitmap1.SetPi(xx, yy, 255, 255, 255);
+                    }
+                });
+            }, 2, false);
+            if (callback2 != null)
+            {
+                callback2(newResultBitmap1);
+            }
         }
     }
 }

@@ -12,9 +12,8 @@ namespace 视觉学习
     {
         static void Main(string[] args)
         {
-
             int index = 0;
-            #region 1-10
+            #region 01-10
             //Bitmap bitmap = new Bitmap("E:\\ZG180140\\Desktop\\视觉\\ImageProcessing100Wen-master\\Question_01_10\\imori.jpg");
             //var rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
             //1
@@ -158,12 +157,152 @@ namespace 视觉学习
             //resultImage = resultImage.Translation(30, -30);
             //resultImage.Save(string.Format("{0}_scale_translation.bmp", index));
             //30
-            Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
-            index = 30;
-            var resultImage = bitmap.Rotate(-30, 0, 30);
-            resultImage.Save(string.Format("{0}_rotate.bmp", index));
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_21_30\\imori.jpg");
+            //index = 30;
+            //var resultImage = bitmap.Rotate(-30, 0, 30);
+            //resultImage.Save(string.Format("{0}_rotate.bmp", index));
             #endregion
+            #region 31-40
+            //31
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //index = 31;
+            //var resultImage = bitmap.Incline(30, 30);
+            //resultImage.Save(string.Format("{0}_incline.bmp", index));
+            //32
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //index = 32;
+            //Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //var result = bitmap.DFT((r, g, b) => r, null);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiRedChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => g, null);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiGreenChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => b, null);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiBlueChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //newBitmap.Save(string.Format("{0}_idft.bmp", index));
+            //33
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //index = 33;
+            //Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //var result = bitmap.DFT((r, g, b) => r, null);
+            //result.LowPassFilter(0.5);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiRedChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => g, null);
+            //result.LowPassFilter(0.5);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiGreenChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => b, null);
+            //result.LowPassFilter(0.5);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiBlueChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //newBitmap.Save(string.Format("{0}_lowFilter.bmp", index));
+            //34
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //index = 34;
+            //Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //var result = bitmap.DFT((r, g, b) => r, null);
+            //result.HighPassFilter(0.2);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiRedChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => g, null);
+            //result.HighPassFilter(0.2);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiGreenChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => b, null);
+            //result.HighPassFilter(0.2);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiBlueChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //newBitmap.Save(string.Format("{0}_highFilter.bmp", index));
+            //35
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //index = 35;
+            //Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //var result = bitmap.DFT((r, g, b) => r, null);
+            //result.BandWidthPassFilter(0.1, 0.5);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiRedChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => g, null);
+            //result.BandWidthPassFilter(0.1, 0.5);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiGreenChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //result = bitmap.DFT((r, g, b) => b, null);
+            //result.Ban dWidthPassFilter(0.1, 0.5);
+            //result.IDFT((x, y, value) =>
+            //{
+            //    newBitmap.SetPiBlueChannel(x, y, (byte)value.FitRange(0, 255));
+            //});
+            //newBitmap.Save(string.Format("{0}_bandWidthFilter.bmp", index));
+            //36
+            //index = 36;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //bitmap.DiscreteCosineTransformation(8).InverseDiscreteCosineTransformation(4, 8, (x, y, channel, value) =>
+            // {
+            //     newBitmap.SetPiChannel(x, y, channel, (byte)value.FitRange(0, 255));
+            // });
+            //newBitmap.Save(string.Format("{0}_dct.bmp", index));
+            //37
+            //index = 37;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_31_40\\imori.jpg");
+            //Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //bitmap.DiscreteCosineTransformation(8).InverseDiscreteCosineTransformation(4, 8, (x, y, channel, value) =>
+            // {
+            //     newBitmap.SetPiChannel(x, y, channel, (byte)value.FitRange(0, 255));
+            // });
+            //var result = bitmap.PSNR(newBitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+            //int k = 1;
+            //38            
+            //39
+            //40
+            #endregion
+            #region 41-50           
+            //41 42 43
+            index = 41;
+            Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
+            bitmap.Canny(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                100, 20,
+                (edgeBitmap, angleBitmap) =>
+            {
+                edgeBitmap.Save(string.Format("{0}_edge.bmp", index));
+                angleBitmap.Save(string.Format("{0}_angle.bmp", index));
+            },
+            edgeBitmap =>
+            {
+                index = 42;
+                edgeBitmap.Save(string.Format("{0}_edge1.bmp", index));
+            },
+            edgeBitmap =>
+            {
+                index = 43;
+                edgeBitmap.Save(string.Format("{0}_edge2.bmp", index));
+            });
 
+            #endregion
         }
     }
 }

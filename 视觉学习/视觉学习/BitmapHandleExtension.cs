@@ -1845,7 +1845,14 @@ namespace 视觉学习
                 s.Sub(bitmap, rectangle, 0);
             });
         }
-        public static void SumOfSquaredDifference(this Bitmap bitmap, Rectangle rectangle, Bitmap template, Action<int, int> callback)
+        /// <summary>
+        /// 误差平方和 ssd
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="template"></param>
+        /// <param name="callback"></param>
+        public static void TemplateMatchBySumOfSquaredDifference(this Bitmap bitmap, Rectangle rectangle, Bitmap template, Action<int, int> callback)
         {
             int min = int.MaxValue, sum, tmp;
             int matchX = -1, matchY = -1;
@@ -1870,6 +1877,219 @@ namespace 视觉学习
                     }
                 }, 1);
             callback(matchX, matchY);
+        }
+        /// <summary>
+        /// 绝对值差和 sad
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="template"></param>
+        /// <param name="callback"></param>
+        public static void TemplateMatchBySumOfAbsoluteDifference(this Bitmap bitmap, Rectangle rectangle, Bitmap template, Action<int, int> callback)
+        {
+            int min = int.MaxValue, sum, tmp;
+            int matchX = -1, matchY = -1;
+            bitmap.TemplateMatching(rectangle, template, () => 0,
+                (x, y, getter, setter) =>
+                {
+                    sum = 0;
+                    getter((xx, yy, r1, g1, b1, r2, g2, b2) =>
+                    {
+                        tmp = r1 - r2;
+                        if (tmp < 0)
+                        {
+                            tmp = -tmp;
+                        }
+                        sum += tmp;
+                        tmp = g1 - g2;
+                        if (tmp < 0)
+                        {
+                            tmp = -tmp;
+                        }
+                        sum += tmp;
+                        tmp = b1 - b2;
+                        if (tmp < 0)
+                        {
+                            tmp = -tmp;
+                        }
+                        sum += tmp;
+                    });
+                    if (sum < min)
+                    {
+                        min = sum;
+                        matchX = x;
+                        matchY = y;
+                    }
+                }, 1);
+            callback(matchX, matchY);
+        }
+        /// <summary>
+        /// 归一化交叉相关 ncc
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="template"></param>
+        /// <param name="callback"></param>
+        public static void TemplateMatchByNormalizationCrossCorrelation(this Bitmap bitmap, Rectangle rectangle, Bitmap template, Action<int, int> callback)
+        {
+            int sum1, sum2, sum3;
+            double sum, max = double.MinValue;
+            int matchX = -1, matchY = -1;
+            bitmap.TemplateMatching(rectangle, template, () => 0,
+                (x, y, getter, setter) =>
+                {
+                    sum = 0;
+                    sum1 = 0;
+                    sum2 = 0;
+                    sum3 = 0;
+                    getter((xx, yy, r1, g1, b1, r2, g2, b2) =>
+                    {
+                        sum1 += r1 * r2;
+                        sum2 += r1 * r1;
+                        sum3 += r2 * r2;
+
+                        sum1 += g1 * g2;
+                        sum2 += g1 * g1;
+                        sum3 += g2 * g2;
+
+                        sum1 += b1 * b2;
+                        sum2 += b1 * b1;
+                        sum3 += b2 * b2;
+                    });
+                    sum = sum1 * 1.0 / (Math.Sqrt(sum2) * Math.Sqrt(sum3));
+                    if (sum > max)
+                    {
+                        max = sum;
+                        matchX = x;
+                        matchY = y;
+                    }
+                }, 1);
+            callback(matchX, matchY);
+        }
+        /// <summary>
+        /// 零均值归一化交叉相关
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="template"></param>
+        /// <param name="callback"></param>
+        public static void TemplateMatchByZeroMeanNormalizationCrossCorrelation(this Bitmap bitmap, Rectangle rectangle, Bitmap template, Action<int, int> callback)
+        {
+            double bitmapRAvg = 0, bitmapGAvg = 0, bitmapBAvg = 0,
+                templateRAvg = 0, templateGAvg = 0, templateBAvg = 0;
+            bitmap.PixForeach(rectangle, (x, y, r, g, b) =>
+            {
+                bitmapRAvg += r;
+                bitmapGAvg += g;
+                bitmapBAvg += b;
+            });
+            template.PixForeach((x, y, r, g, b) =>
+            {
+                templateRAvg += r;
+                templateGAvg += g;
+                templateBAvg += b;
+            });
+            int count = rectangle.Width * rectangle.Height * 3;
+            bitmapRAvg /= count;
+            bitmapGAvg /= count;
+            bitmapBAvg /= count;
+            count = template.Width * template.Height * 3;
+            templateRAvg /= count;
+            templateGAvg /= count;
+            templateBAvg /= count;
+            double sum1, sum2, sum3, tmp1, diffBitmap, diffTemplate;
+            double sum, max = double.MinValue;
+            int matchX = -1, matchY = -1;
+            bitmap.TemplateMatching(rectangle, template, () => 0,
+                (x, y, getter, setter) =>
+                {
+                    sum = 0;
+                    sum1 = 0;
+                    sum2 = 0;
+                    sum3 = 0;
+                    getter((xx, yy, r1, g1, b1, r2, g2, b2) =>
+                    {
+                        diffBitmap = r1 - bitmapRAvg;
+                        diffTemplate = r2 - templateRAvg;
+                        tmp1 = diffBitmap * diffTemplate;
+                        sum2 += diffBitmap * diffBitmap;
+                        sum3 += diffTemplate * diffTemplate;
+                        if (tmp1 < 0)
+                        {
+                            tmp1 = -tmp1;
+                        }
+                        sum1 += tmp1;
+                        diffBitmap = g1 - bitmapGAvg;
+                        diffTemplate = g2 - templateGAvg;
+                        sum2 += diffBitmap * diffBitmap;
+                        sum3 += diffTemplate * diffTemplate;
+                        tmp1 = diffBitmap * diffTemplate;
+                        if (tmp1 < 0)
+                        {
+                            tmp1 = -tmp1;
+                        }
+                        sum1 += tmp1;
+                        diffBitmap = b1 - bitmapBAvg;
+                        diffTemplate = b2 - templateBAvg;
+                        sum2 += diffBitmap * diffBitmap;
+                        sum3 += diffTemplate * diffTemplate;
+                        tmp1 = diffBitmap * diffTemplate;
+                        if (tmp1 < 0)
+                        {
+                            tmp1 = -tmp1;
+                        }
+                        sum1 += tmp1;
+                    });
+                    sum = sum1 / (Math.Sqrt(sum2) * Math.Sqrt(sum3));
+                    if (sum > max)
+                    {
+                        max = sum;
+                        matchX = x;
+                        matchY = y;
+                    }
+                }, 1);
+            callback(matchX, matchY);
+        }
+
+        /// <summary>
+        /// 4-邻接连通域标记
+        /// </summary>
+        /// <param name="bitmap"></param>
+        public static void _4AdjacentConnectedDomainMarker(this Bitmap bitmap)
+        {
+            int connectionTotal = 1, tmp, zeroCount;
+            int[][] connectionCountArr = new int[bitmap.Height][];
+            for (int i = 0; i < connectionCountArr.Length; i++)
+            {
+                connectionCountArr[i] = new int[bitmap.Width];
+            }
+            bitmap.HandleImage(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    zeroCount = 0;
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        if (r == 0)
+                        {
+                            return;
+                        }
+                        tmp = connectionCountArr[y][x - 1];
+
+                    });
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        if (r == 0)
+                        {
+                            return;
+                        }
+
+                    });
+                });
         }
     }
 }

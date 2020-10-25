@@ -955,13 +955,12 @@ namespace Common
         /// <param name="bitmap"></param>
         /// <param name="handleFunc">column row r g b</param>
         public static void HandleImage(this Bitmap bitmap,
-            Rectangle rectangle, Func<byte> fillValueFunc,
+            Rectangle rectangle,
             Action<int, int, Action<int, int, Action<byte, byte, byte>>, Action<byte, byte, byte>> handleFunc, int windowPixLocationType = 0, bool outReturnFlag = true)
         {
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                var fillValue = fillValueFunc();
                 int width = bitmapData.Width;
                 int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
@@ -1036,6 +1035,99 @@ namespace Common
                     for (x = rectangle.X; x < xEnd; x++)
                     {
                         handleFunc(x, y, getter, action);
+                        currentPoint += 3;
+                    }
+                    outCirclePointer += stride;
+                }
+            }
+            bitmap.UnlockBits(bitmapData);
+        }
+        /// <summary>
+        /// 处理每个像素
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="handleFunc">column row r g b</param>
+        public static void HandleImage(this Bitmap bitmap,
+            Rectangle rectangle,
+            Action<int, int, byte, byte, byte, Action<int, int, Action<byte, byte, byte>>, Action<byte, byte, byte>> handleFunc, int windowPixLocationType = 0, bool outReturnFlag = true)
+        {
+            BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            unsafe
+            {
+                int width = bitmapData.Width;
+                int height = bitmapData.Height;
+                int stride = bitmapData.Stride;
+                byte* outCirclePointer = (byte*)bitmapData.Scan0;
+                byte* currentPoint = null;
+                Action<byte, byte, byte> action = (r, g, b) =>
+                {
+                    *(currentPoint + 2) = r;
+                    *(currentPoint + 1) = g;
+                    *(currentPoint) = b;
+                };
+                int y = 0, x = 0, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                int xEnd_1 = xEnd - 1, yEnd_1 = yEnd - 1;
+                Action<int, int, Action<byte, byte, byte>> getter = (offsetX, offsetY, callback) =>
+                {
+                    int xTmp = x + offsetX;
+                    if (xTmp < rectangle.X || xTmp > xEnd_1)
+                    {
+                        return;
+                    }
+                    int yTmp = y + offsetY;
+                    if (yTmp < rectangle.Y || yTmp > yEnd_1)
+                    {
+                        return;
+                    }
+                    bool directionX = offsetX > 0;
+                    bool directionY = offsetY > 0;
+                    int xPointerOffset = 0;
+                    int yPointerOffset = 0;
+                    Func<int, int> stepRunX = null;
+                    if (directionX)
+                    {
+                        stepRunX = s => s - 1;
+                    }
+                    else
+                    {
+                        stepRunX = s => s + 1;
+                    }
+                    Func<int, int> stepRunY = null;
+                    if (directionY)
+                    {
+                        stepRunY = s => s - 1;
+                    }
+                    else
+                    {
+                        stepRunY = s => s + 1;
+                    }
+                    while (offsetX != 0)
+                    {
+                        xPointerOffset += 3;
+                        offsetX = stepRunX(offsetX);
+                    }
+                    while (offsetY != 0)
+                    {
+                        yPointerOffset += stride;
+                        offsetY = stepRunY(offsetY);
+                    }
+                    if (!directionX)
+                    {
+                        xPointerOffset = -xPointerOffset;
+                    }
+                    if (!directionY)
+                    {
+                        yPointerOffset = -yPointerOffset;
+                    }
+                    byte* sum = currentPoint + xPointerOffset + yPointerOffset;
+                    callback(*(sum + 2), *(sum + 1), *sum);
+                };
+                for (y = rectangle.Y; y < yEnd; y++)
+                {
+                    currentPoint = outCirclePointer;
+                    for (x = rectangle.X; x < xEnd; x++)
+                    {
+                        handleFunc(x, y, *(currentPoint + 2), *(currentPoint + 1), *currentPoint, getter, action);
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;

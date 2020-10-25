@@ -373,17 +373,55 @@ namespace 视觉学习
             //bitmap.BlackHat(new Rectangle(0, 0, bitmap.Width, bitmap.Height));
             //bitmap.Save(string.Format("{0}.bmp", index));
             //54
-            index = 54;
-            Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
-            Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
-            bitmap.SumOfSquaredDifference(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
-            {
-                var g = Graphics.FromImage(bitmap);
-                g.DrawRectangle(new Pen(Color.Red),
-                    new Rectangle(x - (template.Width >> 1), y - (template.Height >> 1), template.Width, template.Height));
-                g.Dispose();
-            });
-            bitmap.Save(string.Format("{0}.bmp", index));
+            //index = 54;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
+            //Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
+            //bitmap.TemplateMatchBySumOfSquaredDifference(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
+            //{
+            //    var g = Graphics.FromImage(bitmap);
+            //    g.DrawRectangle(new Pen(Color.Red),
+            //        new Rectangle(x - (template.Width >> 1), y - (template.Height >> 1), template.Width, template.Height));
+            //    g.Dispose();
+            //});
+            //bitmap.Save(string.Format("{0}.bmp", index));
+            //55
+            index = 55;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
+            //Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
+            //bitmap.TemplateMatchBySumOfAbsoluteDifference(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
+            //{
+            //    var g = Graphics.FromImage(bitmap);
+            //    g.DrawRectangle(new Pen(Color.Red),
+            //        new Rectangle(x - (template.Width >> 1), y - (template.Height >> 1), template.Width, template.Height));
+            //    g.Dispose();
+            //});
+            //bitmap.Save(string.Format("{0}.bmp", index));
+            //56
+            index = 56;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
+            //Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
+            //bitmap.TemplateMatchByNormalizationCrossCorrelation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
+            //{
+            //    var g = Graphics.FromImage(bitmap);
+            //    g.DrawRectangle(new Pen(Color.Red),
+            //        new Rectangle(x - (template.Width >> 1), y - (template.Height >> 1), template.Width, template.Height));
+            //    g.Dispose();
+            //});
+            //bitmap.Save(string.Format("{0}.bmp", index));
+            //57            
+            //index = 57;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
+            //Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
+            //bitmap.TemplateMatchByZeroMeanNormalizationCrossCorrelation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
+            //{
+            //    var g = Graphics.FromImage(bitmap);
+            //    g.DrawRectangle(new Pen(Color.Red),
+            //        new Rectangle(x - (template.Width >> 1), y - (template.Height >> 1), template.Width, template.Height));
+            //    g.Dispose();
+            //});
+            //bitmap.Save(string.Format("{0}.bmp", index));
+            //58
+
             #endregion
         }
     }

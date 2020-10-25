@@ -51,11 +51,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "G:\\desk\\视觉\\视觉学习\\视觉学习_dotnetcore\\视觉学习_dotnetcore.csproj",
+      "projectUniqueName": "G:\\desk\\视觉学习\\视觉学习_dotnetcore\\视觉学习_dotnetcore.csproj",
       "projectName": "视觉学习_dotnetcore",
-      "projectPath": "G:\\desk\\视觉\\视觉学习\\视觉学习_dotnetcore\\视觉学习_dotnetcore.csproj",
+      "projectPath": "G:\\desk\\视觉学习\\视觉学习_dotnetcore\\视觉学习_dotnetcore.csproj",
       "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-      "outputPath": "G:\\desk\\视觉\\视觉学习\\视觉学习_dotnetcore\\obj\\",
+      "outputPath": "G:\\desk\\视觉学习\\视觉学习_dotnetcore\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
@@ -105,7 +105,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.402\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.101\\RuntimeIdentifierGraph.json"
       }
     }
   }

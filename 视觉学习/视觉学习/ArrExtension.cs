@@ -287,7 +287,19 @@ namespace Common
                 }
             }
             return -1;
-        }       
+        }
+        public static void Insert<T>(this T[] arr, T value, int index)
+        {
+            if (index < 0 || index > arr.Length - 1)
+            {
+                return;
+            }
+            for (int i = arr.Length - 1; i > index; i++)
+            {
+                arr[i] = arr[i - 1];
+            }
+            arr[index] = value;
+        }
     }
 
     public static class IListExtension

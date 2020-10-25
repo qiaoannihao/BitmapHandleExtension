@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -18,6 +19,12 @@ namespace 视觉学习
         {
             return (byte)(0.2126 * r + 0.7152 * g + 0.0722 * b);
         }
+        /// <summary>
+        /// 通道调换
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="orderCallback"></param>
         public static void ChangeChannelOrder(this Bitmap bitmap, Rectangle rectangle, Action<byte, byte, byte, Action<byte, byte, byte>> orderCallback)
         {
             bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
@@ -25,6 +32,11 @@ namespace 视觉学习
                 orderCallback(r, g, b, setter);
             });
         }
+        /// <summary>
+        /// 彩色转灰度
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
         public static void Grayscale(this Bitmap bitmap, Rectangle rectangle)
         {
             bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
@@ -33,11 +45,18 @@ namespace 视觉学习
                 setter(tmp, tmp, tmp);
             });
         }
+        /// <summary>
+        /// 二值化阈值
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="value"></param>
         public static void Thresholding(this Bitmap bitmap, Rectangle rectangle, int value)
         {
+            byte tmp;
             bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
             {
-                byte tmp = RgbToGray(r, g, b);
+                tmp = RgbToGray(r, g, b);
                 if (tmp < value)
                 {
                     setter(0, 0, 0);
@@ -48,6 +67,12 @@ namespace 视觉学习
                 }
             });
         }
+        /// <summary>
+        /// 大津二值化
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="callback"></param>
         public static void OtsusMethod(this Bitmap bitmap, Rectangle rectangle, Action<int> callback)
         {
             double maxSb = 0;
@@ -91,6 +116,13 @@ namespace 视觉学习
             bitmap.Thresholding(rectangle, maxIndex);
             callback(maxIndex);
         }
+        /// <summary>
+        /// RGB转HSV
+        /// </summary>
+        /// <param name="r"></param>
+        /// <param name="g"></param>
+        /// <param name="b"></param>
+        /// <param name="callback"></param>
         public static void RgbToHSV(byte r, byte g, byte b, Action<double, double, double> callback)
         {
             byte max = r;
@@ -128,6 +160,13 @@ namespace 视觉学习
             }
             callback(h, s * 1.0 / 255, max * 1.0 / 255);
         }
+        /// <summary>
+        /// HSV转RGB
+        /// </summary>
+        /// <param name="h"></param>
+        /// <param name="s"></param>
+        /// <param name="v"></param>
+        /// <param name="callback"></param>
         public static void HSVToRgb(double h, double s, double v, Action<byte, byte, byte> callback)
         {
             double hh = ((h % 360) / 60);
@@ -168,6 +207,11 @@ namespace 视觉学习
             }
             callback((byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
         }
+        /// <summary>
+        /// 反色
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
         public static void Inverse(this Bitmap bitmap, Rectangle rectangle)
         {
             bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
@@ -181,6 +225,11 @@ namespace 视觉学习
                 });
             });
         }
+        /// <summary>
+        /// 减色处理
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public static byte LoseLustre(byte value)
         {
             if (value < 64)
@@ -200,6 +249,11 @@ namespace 视觉学习
                 return 224;
             }
         }
+        /// <summary>
+        /// 减色处理
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
         public static void LoseLustre(this Bitmap bitmap, Rectangle rectangle)
         {
             bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
@@ -207,6 +261,11 @@ namespace 视觉学习
                  setter(LoseLustre(r), LoseLustre(g), LoseLustre(b));
              });
         }
+        /// <summary>
+        /// 指定区域平均池化
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
         public static void Average(this Bitmap bitmap, Rectangle rectangle)
         {
             int rSum = 0;
@@ -1227,12 +1286,13 @@ namespace 视觉学习
             double vMax = 255;
             return 10 * Math.Log10(vMax * vMax / bitmap.MSE(compareImage, rectangle));
         }
-        public static void Canny(this Bitmap bitmap, Rectangle rectangle, int max, int min,
+        public static void Canny(this Bitmap bitmap, Rectangle rectangle,
+            int windowWidth, int windowHeight, double sigma, int max, int min,
             Action<Bitmap, Bitmap> callback,
             Action<Bitmap> callback1,
             Action<Bitmap> callback2)
         {
-            bitmap.GaussianFilter(rectangle, 5, 5, 1.4);
+            bitmap.GaussianFilter(rectangle, windowWidth, windowHeight, sigma);
             var bitmapH = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
             bitmapH.SobelHFilter(rectangle);
             var bitmapV = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
@@ -1378,7 +1438,7 @@ namespace 视觉学习
                 callback1(newResultBitmap);
             }
             var newResultBitmap1 = newResultBitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            newResultBitmap.HandleImage(rectangle, 1, 1, 2, 2, () => 0, (x, y, getter, setter) =>
+            newResultBitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0, (x, y, getter, setter) =>
             {
                 getter((xx, yy, r, g, b) =>
                 {
@@ -1403,6 +1463,413 @@ namespace 视觉学习
             {
                 callback2(newResultBitmap1);
             }
+        }
+
+        public class PixInfo
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Count { get; set; }
+        }
+
+
+
+        public static void HoughTransform(this Bitmap bitmap, Rectangle rectangle,
+            int lineCount,
+            Action<Bitmap> callback1,
+            Action<Bitmap> callback2,
+            Action<Bitmap> callback3)
+        {
+            var result = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            var rMax = (int)Math.Sqrt(rectangle.Height * rectangle.Height + rectangle.Width * rectangle.Width);
+            var _2rMax = rMax << 1;
+            int[][] count = new int[180][];
+            int i;
+            for (i = 0; i < count.Length; i++)
+            {
+                var item = new int[_2rMax];
+                count[i] = item;
+            }
+            int rPos = 0;
+            int angleIndex = 0;
+            double angleStep = Math.PI / 180;
+            double angleCurrent = 0;
+            bitmap.Canny(rectangle, 5, 5, 1.4, 100, 30, null, null, s =>
+            {
+                s.PixForeach(0, rectangle, (x, y, value) =>
+                {
+                    if (value == 255)
+                    {
+                        angleCurrent = 0;
+                        for (angleIndex = 0; angleIndex < 180; angleIndex++)
+                        {
+                            rPos = (int)(x * Math.Cos(angleCurrent) + y * Math.Sin(angleCurrent));
+                            count[angleIndex][rPos + rMax]++;
+                            angleCurrent += angleStep;
+                        }
+                    }
+                });
+            });
+            if (callback1 != null)
+            {
+                int item = 0;
+                var newBitmap = new Bitmap(180, _2rMax, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height), (x, y, setter) =>
+                {
+                    item = count[x][y];
+                    if (item > 255)
+                    {
+                        setter(255, 255, 255);
+                    }
+                    else
+                    {
+                        setter((byte)item, (byte)item, (byte)item);
+                    }
+                });
+                callback1(newBitmap);
+            }
+            int[][] countClone = new int[180][];
+            for (i = 0; i < count.Length; i++)
+            {
+                var item = new int[_2rMax];
+                countClone[i] = item;
+            }
+            List<PixInfo> list = new List<PixInfo>();
+            int current = 0;
+            int ii = 0;
+            MoveWindowFunction._2dArrayMoveWindowFunction(
+                count, new Rectangle(0, 0, _2rMax, 180),
+                1, 1, 1, 1, () => 0, (x, y, value, getter, setter) =>
+                {
+                    if (getter((xx, yy, _value) => _value <= value))
+                    {
+                        if (value == 0)
+                        {
+                            return;
+                        }
+                        if (list.Count == 0)
+                        {
+                            list.Add(new PixInfo()
+                            {
+                                X = x,
+                                Y = y,
+                                Count = value
+                            });
+                            current++;
+                            return;
+                        }
+                        for (ii = 0; ii < list.Count; ii++)
+                        {
+                            var item = list[ii];
+                            if (value > item.Count)
+                            {
+                                current++;
+                                list.Insert(ii, new PixInfo()
+                                {
+                                    X = x,
+                                    Y = y,
+                                    Count = value
+                                });
+                                if (current > lineCount)
+                                {
+                                    int indexx;
+                                    int tmp;
+                                    do
+                                    {
+                                        indexx = list.Count - 1;
+                                        tmp = list[indexx].Count;
+                                        list.RemoveAt(indexx);
+                                        indexx--;
+                                    } while (tmp == list[indexx].Count);
+                                }
+                                return;
+                            }
+                            else if (value == item.Count)
+                            {
+                                list.Insert(ii, new PixInfo()
+                                {
+                                    X = x,
+                                    Y = y,
+                                    Count = value
+                                });
+                                return;
+                            }
+                        }
+                    }
+                }, 0, false);
+
+            if (callback2 != null)
+            {
+                var newBitmap = new Bitmap(180, _2rMax, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                for (ii = 0; ii < list.Count; ii++)
+                {
+                    var item = list[ii];
+                    var value = (byte)(item.Count.FitRange(0, 255));
+                    newBitmap.SetPi(item.Y, item.X, value, value, value);
+                }
+                callback2(newBitmap);
+            }
+            double cosT, sinT;
+            int xxx, yyy;
+            int xEnd = rectangle.Right, yEnd = rectangle.Bottom, xEnd_1 = xEnd - 1, yEnd_1 = yEnd - 1;
+            for (ii = 0; ii < list.Count; ii++)
+            {
+                var item = list[ii];
+                angleCurrent = item.Y * Math.PI / 180;
+                cosT = Math.Cos(angleCurrent);
+                sinT = Math.Sin(angleCurrent);
+                if (sinT == 0 || cosT == 0)
+                {
+                    continue;
+                }
+
+                for (xxx = rectangle.X; xxx < xEnd; xxx++)
+                {
+                    yyy = (int)((-cosT * xxx + (item.X - rMax)) / sinT);
+                    if (yyy < rectangle.Y || yyy > yEnd_1)
+                    {
+                        continue;
+                    }
+                    result.SetPi(xxx, yyy, 255, 0, 0);
+                }
+                for (yyy = rectangle.Y; yyy < yEnd; yyy++)
+                {
+                    xxx = (int)((-sinT * yyy + (item.X - rMax)) / cosT);
+                    if (xxx < rectangle.X || xxx > xEnd_1)
+                    {
+                        continue;
+                    }
+                    result.SetPi(xxx, yyy, 255, 0, 0);
+                }
+            }
+            callback3(result);
+        }
+        /// <summary>
+        /// 膨胀
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="size"></param>
+        /// <param name="callback"></param>
+        public static void Dilate(this Bitmap bitmap, Rectangle rectangle, int size,
+            Action<Bitmap> callback)
+        {
+            bitmap.OtsusMethod(rectangle, s =>
+            {
+
+            });
+            int current = 0;
+            var newBitmap = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            while (current < size)
+            {
+                bitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0,
+                (x, y, r, g, b, getter, setter) =>
+                {
+                    if (r == 255)
+                    {
+                        return;
+                    }
+                    getter((xx, yy, red, green, blue) =>
+                    {
+                        if (xx == 0)
+                        {
+                            if (red != 0)
+                            {
+                                newBitmap.SetPi(x, y, 255, 255, 255);
+                                return false;
+                            }
+                        }
+                        else if (yy == 0)
+                        {
+                            if (red != 0)
+                            {
+                                newBitmap.SetPi(x, y, 255, 255, 255);
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }, 0, false);
+                current++;
+            }
+            callback(newBitmap);
+        }
+        /// <summary>
+        /// 腐蚀
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="size"></param>
+        /// <param name="callback"></param>
+        public static void Erode(this Bitmap bitmap, Rectangle rectangle, int size,
+            Action<Bitmap> callback)
+        {
+            bitmap.OtsusMethod(rectangle, s =>
+            {
+
+            });
+            int current = 0;
+            var newBitmap = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            while (current < size)
+            {
+                bitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0,
+                (x, y, r, g, b, getter, setter) =>
+                {
+                    if (r == 0)
+                    {
+                        return;
+                    }
+                    getter((xx, yy, red, green, blue) =>
+                    {
+                        if (xx == 0)
+                        {
+                            if (red == 0)
+                            {
+                                newBitmap.SetPi(x, y, 0, 0, 0);
+                                return false;
+                            }
+                        }
+                        else if (yy == 0)
+                        {
+                            if (red == 0)
+                            {
+                                newBitmap.SetPi(x, y, 0, 0, 0);
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }, 0, false);
+                current++;
+            }
+            callback(newBitmap);
+        }
+        /// <summary>
+        /// 开运算
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="size"></param>
+        /// <param name="callback"></param>
+        public static void OpeningOperation(this Bitmap bitmap, Rectangle rectangle, int size,
+            Action<Bitmap> callback)
+        {
+            bitmap.OtsusMethod(rectangle, s =>
+            {
+
+            });
+            bitmap.Erode(rectangle, size, s =>
+            {
+                s.Dilate(rectangle, size, ss =>
+                {
+                    callback(ss);
+                });
+            });
+        }
+        /// <summary>
+        /// 闭运算
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="size"></param>
+        /// <param name="callback"></param>
+        public static void ClosingOperation(this Bitmap bitmap, Rectangle rectangle, int size,
+            Action<Bitmap> callback)
+        {
+            bitmap.Canny(rectangle, 5, 5, 1.4, 50, 20, null, null, s =>
+            {
+                s.Dilate(rectangle, size, ss =>
+                {
+                    ss.Erode(rectangle, size, sss =>
+                    {
+                        callback(sss);
+                    });
+                });
+            });
+        }
+
+        /// <summary>
+        /// 形态学梯度
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="size"></param>
+        /// <param name="callback"></param>
+        public static void MorphologyGradient(this Bitmap bitmap, Rectangle rectangle, int size,
+            Action<Bitmap> callback)
+        {
+            bitmap.Dilate(rectangle, size, s =>
+            {
+                bitmap.Erode(rectangle, size, ss =>
+                {
+                    callback(s.Sub(ss, rectangle, 0));
+                });
+            });
+        }
+
+        /// <summary>
+        /// 顶帽
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        public static void TopHat(this Bitmap bitmap, Rectangle rectangle)
+        {
+            var cloneImage = bitmap.Clone(
+                   new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                   System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmap.OtsusMethod(rectangle, s =>
+            {
+
+            });
+            cloneImage.OpeningOperation(rectangle, 3, s =>
+            {
+                bitmap.Sub(s, rectangle, 0);
+            });
+        }
+        /// <summary>
+        /// 黑帽
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        public static void BlackHat(this Bitmap bitmap, Rectangle rectangle)
+        {
+            var cloneImage = bitmap.Clone(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmap.OtsusMethod(rectangle, s =>
+            {
+
+            });
+            cloneImage.ClosingOperation(rectangle, 3, s =>
+            {
+                s.Sub(bitmap, rectangle, 0);
+            });
+        }
+        public static void SumOfSquaredDifference(this Bitmap bitmap, Rectangle rectangle, Bitmap template, Action<int, int> callback)
+        {
+            int min = int.MaxValue, sum, tmp;
+            int matchX = -1, matchY = -1;
+            bitmap.TemplateMatching(rectangle, template, () => 0,
+                (x, y, getter, setter) =>
+                {
+                    sum = 0;
+                    getter((xx, yy, r1, g1, b1, r2, g2, b2) =>
+                     {
+                         tmp = r1 - r2;
+                         sum += tmp * tmp;
+                         tmp = g1 - g2;
+                         sum += tmp * tmp;
+                         tmp = b1 - b2;
+                         sum += tmp * tmp;
+                     });
+                    if (sum < min)
+                    {
+                        min = sum;
+                        matchX = x;
+                        matchY = y;
+                    }
+                }, 1);
+            callback(matchX, matchY);
         }
     }
 }

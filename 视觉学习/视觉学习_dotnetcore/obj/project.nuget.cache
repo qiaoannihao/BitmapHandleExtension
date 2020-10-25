@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "OcIlp2c7YKrBNBVSOzcQcyMczgztlS0HgTYJm3faGqubajA62KKbXRaXouZHcywLYBp7To+zfUY5CryxKuliWg==",
+  "dgSpecHash": "E1644eSEKY+0hPRYxcH5+S7cJ6WNYpXPgw+43jTxu40qFybFn+zRjNOscvRZhnTu5JKvBq9KqXKIw+y3rHzVEA==",
   "success": true,
-  "projectFilePath": "G:\\desk\\视觉\\视觉学习\\视觉学习_dotnetcore\\视觉学习_dotnetcore.csproj",
+  "projectFilePath": "E:\\ZG180140\\Desktop\\视觉\\视觉学习\\视觉学习_dotnetcore\\视觉学习_dotnetcore.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Administrator\\.nuget\\packages\\sixlabors.imagesharp\\1.0.1\\sixlabors.imagesharp.1.0.1.nupkg.sha512"
+    "C:\\Users\\gr180140\\.nuget\\packages\\sixlabors.imagesharp\\1.0.1\\sixlabors.imagesharp.1.0.1.nupkg.sha512"
   ],
   "logs": []
 }

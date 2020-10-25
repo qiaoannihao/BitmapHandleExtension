@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace 视觉学习
+namespace Common
 {
     public static class ValueExtension
     {

@@ -479,17 +479,16 @@ namespace Common
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 byte* currentPoint;
                 byte* outCirclePointer = (byte*)bitmapData.Scan0;
-                for (int i = 0; i < height; i++)
+                int y, x, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
-                        handleFunc(rectangle.X + j, rectangle.Y + i, *(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
+                        handleFunc(x, y, *(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;
@@ -523,22 +522,18 @@ namespace Common
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 byte* currentPoint;
                 byte* outCirclePointer = (byte*)bitmapData.Scan0;
-                int xOffset, yOffset;
-                for (int i = 0; i < height; i++)
+                int y, x, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
-                        xOffset = rectangle.X + j;
-                        yOffset = rectangle.Y + i;
-                        handleFunc(xOffset, yOffset, *(currentPoint + 2));
-                        handleFunc(xOffset, yOffset, *(currentPoint + 1));
-                        handleFunc(xOffset, yOffset, *currentPoint);
+                        handleFunc(x, y, *(currentPoint + 2));
+                        handleFunc(x, y, *(currentPoint + 1));
+                        handleFunc(x, y, *currentPoint);
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;
@@ -573,17 +568,16 @@ namespace Common
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 byte* currentPoint;
                 byte* outCirclePointer = (byte*)bitmapData.Scan0;
-                for (int i = 0; i < height; i++)
+                int y, x, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
-                        handleFunc(rectangle.X + j, rectangle.Y + i, *(currentPoint + channelIndex));
+                        handleFunc(x, y, *(currentPoint + channelIndex));
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;
@@ -636,8 +630,6 @@ namespace Common
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 byte* outCirclePointer = (byte*)bitmapData.Scan0;
                 byte* currentPoint = null;
@@ -647,13 +639,14 @@ namespace Common
                     *(currentPoint + 1) = g;
                     *(currentPoint) = b;
                 };
-                for (int i = 0; i < height; i++)
+                int y, x, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
                         handleFunc(
-                            rectangle.X + j, rectangle.Y + i,
+                            x, y,
                             *(currentPoint + 2), *(currentPoint + 1), *(currentPoint),
                             action);
                         currentPoint += 3;
@@ -663,7 +656,6 @@ namespace Common
             }
             bitmap.UnlockBits(bitmapData);
         }
-
         /// <summary>
         /// 处理每个像素
         /// </summary>
@@ -673,7 +665,7 @@ namespace Common
             Rectangle rectangle,
             int leftWidth, int rightWidth, int topHeight, int bottomHeight,
             Func<byte> fillValueFunc,
-            Action<int, int, Action<Action<int, int, byte, byte, byte>>, Action<byte, byte, byte>> handleFunc,
+            Action<int, int, byte, byte, byte, Func<Func<int, int, byte, byte, byte, bool>, bool>, Action<byte, byte, byte>> handleFunc,
             int windowPixLocationType = 0, bool outReturnFlag = true)
         {
             if (rectangle.X < 0)
@@ -696,8 +688,6 @@ namespace Common
             unsafe
             {
                 var fillValue = fillValueFunc();
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 byte* outCirclePointer = (byte*)bitmapData.Scan0;
                 byte* currentPoint = null, currentPointTmp;
@@ -708,7 +698,7 @@ namespace Common
                     *(currentPoint + 1) = g;
                     *(currentPoint) = b;
                 };
-                int y, yy = 0, x, xx = 0, dx = 0, dy = 0,
+                int y = 0, yy = 0, x = 0, xx = 0, dx = 0, dy = 0,
                     windowHlafWidthPointerStep, windowHlafHeightPointerStep,
                     currentWidthPointerOffset, currentHeightPointerOffset;
                 windowHlafWidthPointerStep = leftWidth * 3;
@@ -743,38 +733,180 @@ namespace Common
                         return dy;
                     };
                 }
-                for (y = 0; y < height; y++)
+                int yEnd = rectangle.Bottom;
+                int xEnd = rectangle.Right;
+                int xEnd_1 = xEnd - 1;
+                int yEnd_1 = yEnd - 1;
+                bool yOutRectangleFlag = false;
+                Func<Func<int, int, byte, byte, byte, bool>, bool> getter = ss =>
+                  {
+                      currentHeightPointerOffset = -windowHlafHeightPointerStep;
+                      for (yy = -topHeight; yy < bottomHeight + 1; yy++)
+                      {
+                          dy = y + yy;
+                          yOutRectangleFlag = dy < rectangle.Y || dy > yEnd_1;
+                          currentWidthPointerOffset = -windowHlafWidthPointerStep;
+                          for (xx = -leftWidth; xx < rightWidth + 1; xx++)
+                          {
+                              dx = x + xx;
+                              if (yOutRectangleFlag || dx < rectangle.X || dx > xEnd_1)
+                              {
+                                  if (outReturnFlag)
+                                  {
+                                      if (!ss(xxGetter(), yyGetter(), fillValue, fillValue, fillValue))
+                                      {
+                                          return false;
+                                      }
+                                  }
+                              }
+                              else
+                              {
+                                  currentPointTmp = currentPoint + currentWidthPointerOffset + currentHeightPointerOffset;
+                                  if (!ss(xxGetter(), yyGetter(), *(currentPointTmp + 2), *(currentPointTmp + 1), *(currentPointTmp)))
+                                  {
+                                      return false;
+                                  }
+                              }
+                              currentWidthPointerOffset += 3;
+                          }
+                          currentHeightPointerOffset += stride;
+                      }
+                      return true;
+                  };
+
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (x = 0; x < width; x++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
-                        handleFunc(x, y, ss =>
+                        handleFunc(x, y,
+                            *(currentPoint + 2),
+                            *(currentPoint + 1),
+                            *currentPoint, getter, action);
+                        currentPoint += 3;
+                    }
+                    outCirclePointer += stride;
+                }
+            }
+            bitmap.UnlockBits(bitmapData);
+        }
+        /// <summary>
+        /// 处理每个像素
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="handleFunc">column row r g b</param>
+        public static void HandleImage(this Bitmap bitmap,
+            Rectangle rectangle,
+            int leftWidth, int rightWidth, int topHeight, int bottomHeight,
+            Func<byte> fillValueFunc,
+            Action<int, int, Action<Action<int, int, byte, byte, byte>>, Action<byte, byte, byte>> handleFunc,
+            int windowPixLocationType = 0, bool outReturnFlag = true)
+        {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
+            BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            unsafe
+            {
+                var fillValue = fillValueFunc();
+                int stride = bitmapData.Stride;
+                byte* outCirclePointer = (byte*)bitmapData.Scan0;
+                byte* currentPoint = null, currentPointTmp;
+
+                Action<byte, byte, byte> action = (r, g, b) =>
+                {
+                    *(currentPoint + 2) = r;
+                    *(currentPoint + 1) = g;
+                    *(currentPoint) = b;
+                };
+                int y = 0, yy = 0, x = 0, xx = 0, dx = 0, dy = 0,
+                    windowHlafWidthPointerStep, windowHlafHeightPointerStep,
+                    currentWidthPointerOffset, currentHeightPointerOffset;
+                windowHlafWidthPointerStep = leftWidth * 3;
+                windowHlafHeightPointerStep = topHeight * stride;
+                Func<int> xxGetter = () =>
+                {
+                    return xx;
+                };
+                Func<int> yyGetter = () =>
+                {
+                    return yy;
+                };
+                if (windowPixLocationType == 1)
+                {
+                    xxGetter = () =>
+                    {
+                        return xx + leftWidth;
+                    };
+                    yyGetter = () =>
+                    {
+                        return yy + topHeight;
+                    };
+                }
+                else if (windowPixLocationType == 2)
+                {
+                    xxGetter = () =>
+                    {
+                        return dx;
+                    };
+                    yyGetter = () =>
+                    {
+                        return dy;
+                    };
+                }
+                int yEnd = rectangle.Bottom;
+                int xEnd = rectangle.Right;
+                int xEnd_1 = xEnd - 1;
+                int yEnd_1 = yEnd - 1;
+                bool yOutRectangleFlag = false;
+                Action<Action<int, int, byte, byte, byte>> getter = ss =>
+                {
+                    currentHeightPointerOffset = -windowHlafHeightPointerStep;
+                    for (yy = -topHeight; yy < bottomHeight + 1; yy++)
+                    {
+                        dy = y + yy;
+                        yOutRectangleFlag = dy < rectangle.Y || dy > yEnd_1;
+                        currentWidthPointerOffset = -windowHlafWidthPointerStep;
+                        for (xx = -leftWidth; xx < rightWidth + 1; xx++)
                         {
-                            currentHeightPointerOffset = -windowHlafHeightPointerStep;
-                            for (yy = -topHeight; yy < bottomHeight + 1; yy++)
+                            dx = x + xx;
+                            if (yOutRectangleFlag || dx < rectangle.X || dx > xEnd_1)
                             {
-                                currentWidthPointerOffset = -windowHlafWidthPointerStep;
-                                for (xx = -leftWidth; xx < rightWidth + 1; xx++)
+                                if (outReturnFlag)
                                 {
-                                    dx = x + xx;
-                                    dy = y + yy;
-                                    if (dx < rectangle.X || dx > rectangle.Right - 1 || dy < rectangle.Y || dy > rectangle.Bottom - 1)
-                                    {
-                                        if (outReturnFlag)
-                                        {
-                                            ss(xxGetter(), yyGetter(), fillValue, fillValue, fillValue);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        currentPointTmp = currentPoint + currentWidthPointerOffset + currentHeightPointerOffset;
-                                        ss(xxGetter(), yyGetter(), *(currentPointTmp + 2), *(currentPointTmp + 1), *(currentPointTmp));
-                                    }
-                                    currentWidthPointerOffset += 3;
+                                    ss(xxGetter(), yyGetter(), fillValue, fillValue, fillValue);
                                 }
-                                currentHeightPointerOffset += stride;
                             }
-                        }, action);
+                            else
+                            {
+                                currentPointTmp = currentPoint + currentWidthPointerOffset + currentHeightPointerOffset;
+                                ss(xxGetter(), yyGetter(), *(currentPointTmp + 2), *(currentPointTmp + 1), *(currentPointTmp));
+                            }
+                            currentWidthPointerOffset += 3;
+                        }
+                        currentHeightPointerOffset += stride;
+                    }
+                };
+
+                for (y = rectangle.Y; y < yEnd; y++)
+                {
+                    currentPoint = outCirclePointer;
+                    for (x = rectangle.X; x < xEnd; x++)
+                    {
+                        handleFunc(x, y, getter, action);
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;
@@ -791,97 +923,31 @@ namespace Common
             Rectangle rectangle, int windowWidth, int windowHeight, Func<byte> fillValueFunc,
             Action<int, int, Action<Action<int, int, byte, byte, byte>>, Action<byte, byte, byte>> handleFunc, int windowPixLocationType = 0, bool outReturnFlag = true)
         {
-            BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
-            unsafe
+            var remainder = windowWidth & 1;
+            int leftWidth, rightWidth, topHeight, bottomHeight;
+            if (remainder == 0)
             {
-                var fillValue = fillValueFunc();
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
-                int stride = bitmapData.Stride;
-                byte* outCirclePointer = (byte*)bitmapData.Scan0;
-                byte* currentPoint = null, currentPointTmp;
-
-                Action<byte, byte, byte> action = (r, g, b) =>
-                {
-                    *(currentPoint + 2) = r;
-                    *(currentPoint + 1) = g;
-                    *(currentPoint) = b;
-                };
-                int y, yy = 0, x, xx = 0, dx = 0, dy = 0, halfWidth, halfHeight,
-                    windowHlafWidthPointerStep, windowHlafHeightPointerStep,
-                    currentWidthPointerOffset, currentHeightPointerOffset;
-                halfWidth = windowWidth >> 1;
-                halfHeight = windowHeight >> 1;
-                windowHlafWidthPointerStep = halfWidth * 3;
-                windowHlafHeightPointerStep = halfHeight * stride;
-                Func<int> xxGetter = () =>
-                {
-                    return xx;
-                };
-                Func<int> yyGetter = () =>
-                {
-                    return yy;
-                };
-                if (windowPixLocationType == 1)
-                {
-                    xxGetter = () =>
-                    {
-                        return xx + halfWidth;
-                    };
-                    yyGetter = () =>
-                    {
-                        return yy + halfHeight;
-                    };
-                }
-                else if (windowPixLocationType == 2)
-                {
-                    xxGetter = () =>
-                    {
-                        return dx;
-                    };
-                    yyGetter = () =>
-                    {
-                        return dy;
-                    };
-                }
-                for (y = 0; y < height; y++)
-                {
-                    currentPoint = outCirclePointer;
-                    for (x = 0; x < width; x++)
-                    {
-                        handleFunc(x, y, ss =>
-                        {
-                            currentHeightPointerOffset = -windowHlafHeightPointerStep;
-                            for (yy = -halfHeight; yy < halfHeight + 1; yy++)
-                            {
-                                currentWidthPointerOffset = -windowHlafWidthPointerStep;
-                                for (xx = -halfWidth; xx < halfWidth + 1; xx++)
-                                {
-                                    dx = x + xx;
-                                    dy = y + yy;
-                                    if (dx < rectangle.X || dx > rectangle.Right - 1 || dy < rectangle.Y || dy > rectangle.Bottom - 1)
-                                    {
-                                        if (outReturnFlag)
-                                        {
-                                            ss(xxGetter(), yyGetter(), fillValue, fillValue, fillValue);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        currentPointTmp = currentPoint + currentWidthPointerOffset + currentHeightPointerOffset;
-                                        ss(xxGetter(), yyGetter(), *(currentPointTmp + 2), *(currentPointTmp + 1), *(currentPointTmp));
-                                    }
-                                    currentWidthPointerOffset += 3;
-                                }
-                                currentHeightPointerOffset += stride;
-                            }
-                        }, action);
-                        currentPoint += 3;
-                    }
-                    outCirclePointer += stride;
-                }
+                rightWidth = (windowWidth >> 1) + 1;
+                leftWidth = rightWidth - 1;
             }
-            bitmap.UnlockBits(bitmapData);
+            else
+            {
+                leftWidth = windowWidth >> 1;
+                rightWidth = leftWidth;
+            }
+            remainder = windowHeight & 1;
+            if (remainder == 0)
+            {
+                bottomHeight = (windowHeight >> 1);
+                topHeight = bottomHeight - 1;
+            }
+            else
+            {
+                bottomHeight = (windowHeight >> 1);
+                topHeight = bottomHeight;
+            }
+            bitmap.HandleImage(rectangle,
+                leftWidth, rightWidth, topHeight, bottomHeight, fillValueFunc, handleFunc, windowPixLocationType, outReturnFlag);
         }
         /// <summary>
         /// 处理每个像素
@@ -907,67 +973,69 @@ namespace Common
                     *(currentPoint + 1) = g;
                     *(currentPoint) = b;
                 };
-                int y, x;
-                for (y = 0; y < height; y++)
+                int y = 0, x = 0, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                int xEnd_1 = xEnd - 1, yEnd_1 = yEnd - 1;
+                Action<int, int, Action<byte, byte, byte>> getter = (offsetX, offsetY, callback) =>
+                {
+                    int xTmp = x + offsetX;
+                    if (xTmp < rectangle.X || xTmp > xEnd_1)
+                    {
+                        return;
+                    }
+                    int yTmp = y + offsetY;
+                    if (yTmp < rectangle.Y || yTmp > yEnd_1)
+                    {
+                        return;
+                    }
+                    bool directionX = offsetX > 0;
+                    bool directionY = offsetY > 0;
+                    int xPointerOffset = 0;
+                    int yPointerOffset = 0;
+                    Func<int, int> stepRunX = null;
+                    if (directionX)
+                    {
+                        stepRunX = s => s - 1;
+                    }
+                    else
+                    {
+                        stepRunX = s => s + 1;
+                    }
+                    Func<int, int> stepRunY = null;
+                    if (directionY)
+                    {
+                        stepRunY = s => s - 1;
+                    }
+                    else
+                    {
+                        stepRunY = s => s + 1;
+                    }
+                    while (offsetX != 0)
+                    {
+                        xPointerOffset += 3;
+                        offsetX = stepRunX(offsetX);
+                    }
+                    while (offsetY != 0)
+                    {
+                        yPointerOffset += stride;
+                        offsetY = stepRunY(offsetY);
+                    }
+                    if (!directionX)
+                    {
+                        xPointerOffset = -xPointerOffset;
+                    }
+                    if (!directionY)
+                    {
+                        yPointerOffset = -yPointerOffset;
+                    }
+                    byte* sum = currentPoint + xPointerOffset + yPointerOffset;
+                    callback(*(sum + 2), *(sum + 1), *sum);
+                };
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (x = 0; x < width; x++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
-                        handleFunc(x, y, (offsetX, offsetY, callback) =>
-                          {
-                              int xTmp = x + offsetX;
-                              if (xTmp < 0 || xTmp > width - 1)
-                              {
-                                  return;
-                              }
-                              int yTmp = y + offsetY;
-                              if (yTmp < 0 || yTmp > height - 1)
-                              {
-                                  return;
-                              }
-                              bool directionX = offsetX > 0;
-                              bool directionY = offsetY > 0;
-                              int xPointerOffset = 0;
-                              int yPointerOffset = 0;
-                              Func<int, int> stepRunX = null;
-                              if (directionX)
-                              {
-                                  stepRunX = s => s - 1;
-                              }
-                              else
-                              {
-                                  stepRunX = s => s + 1;
-                              }
-                              Func<int, int> stepRunY = null;
-                              if (directionY)
-                              {
-                                  stepRunY = s => s - 1;
-                              }
-                              else
-                              {
-                                  stepRunY = s => s + 1;
-                              }
-                              while (offsetX != 0)
-                              {
-                                  xPointerOffset += 3;
-                                  offsetX = stepRunX(offsetX);
-                              }
-                              while (offsetY != 0)
-                              {
-                                  yPointerOffset += stride;
-                                  offsetY = stepRunY(offsetY);
-                              }
-                              if (!directionX)
-                              {
-                                  xPointerOffset = -xPointerOffset;
-                              }
-                              if (!directionY)
-                              {
-                                  yPointerOffset = -yPointerOffset;
-                              }
-                              byte* sum = currentPoint + xPointerOffset + yPointerOffset;
-                              callback(*(sum + 2), *(sum + 1), *sum);
-                          }, action);
+                        handleFunc(x, y, getter, action);
                         currentPoint += 3;
                     }
                     outCirclePointer += stride;
@@ -1001,8 +1069,6 @@ namespace Common
             BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 byte* outCirclePointer = (byte*)bitmapData.Scan0;
                 byte* currentPoint = null;
@@ -1012,13 +1078,14 @@ namespace Common
                     *(currentPoint + 1) = g;
                     *(currentPoint) = b;
                 };
-                for (int i = 0; i < height; i++)
+                int y, x, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint = outCirclePointer;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
                         handleFunc(
-                            rectangle.X + j, rectangle.Y + i,
+                            x, y,
                             action);
                         currentPoint += 3;
                     }
@@ -1093,6 +1160,7 @@ namespace Common
                 byte* currentPoint = null;
                 byte* outCirclePointer = null;
                 byte[] buffer = null;
+                int y, x, yEnd;
                 Action update = () =>
                 {
                     byte* updatePointer = outCirclePointer;
@@ -1102,37 +1170,38 @@ namespace Common
                         updatePointer += 3;
                     }
                 };
+
                 if (isPositive)
                 {
+                    yEnd = rectangle.Bottom;
                     outCirclePointer = san0;
-                    for (int i = 0; i < height; i++)
+                    for (y = rectangle.Y; y < yEnd; y++)
                     {
                         buffer = new byte[width];
                         currentPoint = outCirclePointer;
-                        for (int j = 0; j < width; j++)
+                        for (x = 0; x < width; x++)
                         {
-                            var tmp = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
-                            buffer[j] = tmp;
+                            buffer[x] = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
                             currentPoint += 3;
                         }
-                        oneRowEvt(rectangle.Y + i, buffer, update);
+                        oneRowEvt(y, buffer, update);
                         outCirclePointer += stride;
                     }
                 }
                 else
                 {
                     outCirclePointer = san0 + (stride * (height - 1));
-                    for (int i = height - 1; i > -1; i--)
+                    yEnd = rectangle.Y - 1;
+                    for (y = height - 1; y > yEnd; y--)
                     {
                         buffer = new byte[width];
                         currentPoint = outCirclePointer;
-                        for (int j = 0; j < width; j++)
+                        for (x = 0; x < width; x++)
                         {
-                            var tmp = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
-                            buffer[j] = tmp;
+                            buffer[x] = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
                             currentPoint += 3;
                         }
-                        oneRowEvt(rectangle.Y + i, buffer, update);
+                        oneRowEvt(y, buffer, update);
                         outCirclePointer -= stride;
                     }
                 }
@@ -1168,6 +1237,7 @@ namespace Common
                 byte* currentPoint = null;
                 byte* outCirclePointer = null;
                 byte[] buffer = null;
+                int y, x, xEnd;
                 Action update = () =>
                 {
                     byte* updatePointer = outCirclePointer;
@@ -1179,35 +1249,35 @@ namespace Common
                 };
                 if (isPositive)
                 {
+                    xEnd = rectangle.Right;
                     outCirclePointer = san0;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < xEnd; x++)
                     {
                         buffer = new byte[height];
                         currentPoint = outCirclePointer;
-                        for (int i = 0; i < height; i++)
+                        for (y = 0; y < height; y++)
                         {
-                            var tmp = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
-                            buffer[i] = tmp;
+                            buffer[y] = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
                             currentPoint += stride;
                         }
-                        oneColumnEvt(rectangle.X + j, buffer, update);
+                        oneColumnEvt(x, buffer, update);
                         outCirclePointer += 3;
                     }
                 }
                 else
                 {
                     outCirclePointer = san0 + (width - 1) * 3;
-                    for (int j = width - 1; j > -1; j--)
+                    xEnd = rectangle.X - 1;
+                    for (x = width - 1; x > xEnd; x--)
                     {
                         buffer = new byte[height];
                         currentPoint = outCirclePointer;
-                        for (int i = 0; i < height; i++)
+                        for (y = 0; y < height; y++)
                         {
-                            var tmp = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
-                            buffer[i] = tmp;
+                            buffer[y] = rgbHandle(*(currentPoint + 2), *(currentPoint + 1), *(currentPoint));
                             currentPoint += stride;
                         }
-                        oneColumnEvt(rectangle.X + j, buffer, update);
+                        oneColumnEvt(x, buffer, update);
                         outCirclePointer -= 3;
                     }
                 }
@@ -1445,8 +1515,6 @@ namespace Common
             BitmapData bitmapData2 = bitmap2.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             unsafe
             {
-                int width = bitmapData1.Width;
-                int height = bitmapData1.Height;
                 int stride = bitmapData1.Stride;
                 byte* outCirclePointer1 = (byte*)bitmapData1.Scan0;
                 byte* currentPoint1 = null;
@@ -1464,14 +1532,15 @@ namespace Common
                     *(currentPoint2 + 1) = g;
                     *(currentPoint2) = b;
                 };
-                for (int i = 0; i < height; i++)
+                int x, y, xEnd = rectangle.Right, yEnd = rectangle.Bottom;
+                for (y = rectangle.Y; y < yEnd; y++)
                 {
                     currentPoint1 = outCirclePointer1;
                     currentPoint2 = outCirclePointer2;
-                    for (int j = 0; j < width; j++)
+                    for (x = rectangle.X; x < rectangle.Right; x++)
                     {
                         handleFunc(
-                            rectangle.X + j, rectangle.Y + i,
+                            x, y,
                             *(currentPoint1 + 2), *(currentPoint1 + 1), *(currentPoint1),
                             *(currentPoint2 + 2), *(currentPoint2 + 1), *(currentPoint2),
                             action1, action2);
@@ -1485,5 +1554,188 @@ namespace Common
             bitmap1.UnlockBits(bitmapData1);
             bitmap2.UnlockBits(bitmapData2);
         }
+
+        public static Bitmap Add(this Bitmap bitmap, Bitmap bitmap1, Rectangle rectangle, int offset)
+        {
+            bitmap.HandleTwoImage(bitmap1, rectangle, (x, y, r1, g1, b1, r2, g2, b2, setter1, setter2) =>
+            {
+                setter1((byte)((r1 + r2 + offset).FitRange(0, 255)),
+                    (byte)((g1 + g2 + offset).FitRange(0, 255)),
+                    (byte)((b1 + b2 + offset).FitRange(0, 255)));
+            });
+            return bitmap;
+        }
+
+        public static Bitmap Sub(this Bitmap bitmap, Bitmap bitmap1, Rectangle rectangle, int offset)
+        {
+            bitmap.HandleTwoImage(bitmap1, rectangle, (x, y, r1, g1, b1, r2, g2, b2, setter1, setter2) =>
+            {
+                setter1((byte)((r1 - r2 + offset).FitRange(0, 255)),
+                    (byte)((g1 - g2 + offset).FitRange(0, 255)),
+                    (byte)((b1 - b2 + offset).FitRange(0, 255)));
+            });
+            return bitmap;
+        }
+
+        /// <summary>
+        /// 处理每个像素
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="handleFunc">column row r g b</param>
+        public static void TemplateMatching(this Bitmap bitmap,
+            Rectangle rectangle,
+            Bitmap template,
+            Func<byte> fillValueFunc,
+            Action<int, int, Action<Action<int, int, byte, byte, byte, byte, byte, byte>>, Action<byte, byte, byte>> handleFunc,
+            int windowPixLocationType = 0, bool outReturnFlag = true)
+        {
+            if (rectangle.X < 0)
+            {
+                rectangle.X = 0;
+            }
+            if (rectangle.Y < 0)
+            {
+                rectangle.Y = 0;
+            }
+            if (rectangle.Right > bitmap.Width)
+            {
+                rectangle.Width = bitmap.Width - rectangle.X;
+            }
+            if (rectangle.Bottom > bitmap.Height)
+            {
+                rectangle.Height = bitmap.Height - rectangle.Y;
+            }
+            BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            var templateBitmapData = template.LockBits(new Rectangle(0, 0, template.Width, template.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            unsafe
+            {
+                var remainder = template.Width & 1;
+                int leftWidth, rightWidth, topHeight, bottomHeight;
+                if (remainder == 0)
+                {
+                    rightWidth = (template.Width >> 1);
+                    leftWidth = rightWidth - 1;
+                }
+                else
+                {
+                    leftWidth = template.Width >> 1;
+                    rightWidth = leftWidth;
+                }
+                remainder = template.Height & 1;
+                if (remainder == 0)
+                {
+                    bottomHeight = (template.Height >> 1);
+                    topHeight = bottomHeight - 1;
+                }
+                else
+                {
+                    bottomHeight = (template.Height >> 1);
+                    topHeight = bottomHeight;
+                }
+                var fillValue = fillValueFunc();
+                int stride1 = bitmapData.Stride;
+                int stride2 = templateBitmapData.Stride;
+                byte* outCirclePointer1 = (byte*)bitmapData.Scan0;
+                byte* currentPoint1 = null, currentPointTmp1;
+                byte* outCirclePointer2 = (byte*)templateBitmapData.Scan0;
+                byte* currentPoint2 = null;
+
+                Action<byte, byte, byte> action = (r, g, b) =>
+                {
+                    *(currentPoint1 + 2) = r;
+                    *(currentPoint1 + 1) = g;
+                    *(currentPoint1) = b;
+                };
+                int y = 0, yy = 0, x = 0, xx = 0, dx = 0, dy = 0,
+                    windowHlafWidthPointerStep, windowHlafHeightPointerStep,
+                    currentWidthPointerOffset, currentHeightPointerOffset;
+                windowHlafWidthPointerStep = leftWidth * 3;
+                windowHlafHeightPointerStep = topHeight * stride1;
+                Func<int> xxGetter = () =>
+                {
+                    return xx;
+                };
+                Func<int> yyGetter = () =>
+                {
+                    return yy;
+                };
+                if (windowPixLocationType == 1)
+                {
+                    xxGetter = () =>
+                    {
+                        return xx + leftWidth;
+                    };
+                    yyGetter = () =>
+                    {
+                        return yy + topHeight;
+                    };
+                }
+                else if (windowPixLocationType == 2)
+                {
+                    xxGetter = () =>
+                    {
+                        return dx;
+                    };
+                    yyGetter = () =>
+                    {
+                        return dy;
+                    };
+                }
+                int yEnd = rectangle.Bottom;
+                int xEnd = rectangle.Right;
+                int xEnd_1 = xEnd - 1;
+                int yEnd_1 = yEnd - 1;
+                bool yOutRectangleFlag = false;
+                Action<Action<int, int, byte, byte, byte, byte, byte, byte>> getter = ss =>
+                {
+                    currentHeightPointerOffset = -windowHlafHeightPointerStep;
+                    outCirclePointer2 = (byte*)templateBitmapData.Scan0;
+                    for (yy = -topHeight; yy < bottomHeight + 1; yy++)
+                    {
+                        dy = y + yy;
+                        yOutRectangleFlag = dy < rectangle.Y || dy > yEnd_1;
+                        currentWidthPointerOffset = -windowHlafWidthPointerStep;
+                        currentPoint2 = outCirclePointer2;
+                        for (xx = -leftWidth; xx < rightWidth + 1; xx++)
+                        {
+                            dx = x + xx;
+                            if (yOutRectangleFlag || dx < rectangle.X || dx > xEnd_1)
+                            {
+                                if (outReturnFlag)
+                                {
+                                    ss(xxGetter(), yyGetter(),
+                                     fillValue, fillValue, fillValue,
+                                     *(currentPoint2 + 2), *(currentPoint2 + 1), *(currentPoint2));
+                                }
+                            }
+                            else
+                            {
+                                currentPointTmp1 = currentPoint1 + currentWidthPointerOffset + currentHeightPointerOffset;
+                                ss(xxGetter(), yyGetter(),
+                                    *(currentPointTmp1 + 2), *(currentPointTmp1 + 1), *(currentPointTmp1),
+                                    *(currentPoint2 + 2), *(currentPoint2 + 1), *(currentPoint2));
+                            }
+                            currentPoint2 += 3;
+                            currentWidthPointerOffset += 3;
+                        }
+                        currentHeightPointerOffset += stride1;
+                        outCirclePointer2 += stride2;
+                    }
+                };
+
+                for (y = rectangle.Y; y < yEnd; y++)
+                {
+                    currentPoint1 = outCirclePointer1;
+                    for (x = rectangle.X; x < xEnd; x++)
+                    {
+                        handleFunc(x, y, getter, action);
+                        currentPoint1 += 3;
+                    }
+                    outCirclePointer1 += stride1;
+                }
+            }
+            bitmap.UnlockBits(bitmapData);
+        }
     }
+
 }

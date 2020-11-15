@@ -18,3 +18,10 @@ G:\desk\视觉学习\视觉学习\bin\Debug\视觉学习.pdb
 G:\desk\视觉学习\视觉学习\obj\Debug\视觉学习.csprojAssemblyReference.cache
 G:\desk\视觉学习\视觉学习\obj\Debug\视觉学习.exe
 G:\desk\视觉学习\视觉学习\obj\Debug\视觉学习.pdb
+I:\视觉\视觉学习\视觉学习\bin\Debug\视觉学习.exe.config
+I:\视觉\视觉学习\视觉学习\bin\Debug\视觉学习.exe
+I:\视觉\视觉学习\视觉学习\bin\Debug\视觉学习.pdb
+I:\视觉\视觉学习\视觉学习\obj\Debug\视觉学习.csprojAssemblyReference.cache
+I:\视觉\视觉学习\视觉学习\obj\Debug\视觉学习.csproj.CoreCompileInputs.cache
+I:\视觉\视觉学习\视觉学习\obj\Debug\视觉学习.exe
+I:\视觉\视觉学习\视觉学习\obj\Debug\视觉学习.pdb

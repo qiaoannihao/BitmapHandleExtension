@@ -289,13 +289,26 @@ namespace 视觉学习
                 setter(rAverage, gAverage, bAverage);
             });
         }
+        /// <summary>
+        /// 平均池
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="poolSize"></param>
         public static void AveragePooling(this Bitmap bitmap, Rectangle rectangle, int poolSize)
         {
             AveragePooling(bitmap, rectangle, poolSize, poolSize);
         }
+        /// <summary>
+        /// 平均池
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="poolWidth"></param>
+        /// <param name="poolHeight"></param>
         public static void AveragePooling(this Bitmap bitmap, Rectangle rectangle, int poolWidth, int poolHeight)
         {
-            MoveWindowFunction.ImageSegmentation(rectangle, poolWidth, poolHeight, area =>
+            _2dArrayHandleFunction.ImageSegmentation(rectangle, poolWidth, poolHeight, area =>
             {
                 bitmap.Average(area);
             });
@@ -327,7 +340,7 @@ namespace 视觉学习
         }
         public static void MaxPooling(this Bitmap bitmap, Rectangle rectangle, int poolWidth, int poolHeight)
         {
-            MoveWindowFunction.ImageSegmentation(rectangle, poolWidth, poolHeight, area =>
+            _2dArrayHandleFunction.ImageSegmentation(rectangle, poolWidth, poolHeight, area =>
             {
                 bitmap.Max(area);
             });
@@ -706,6 +719,13 @@ namespace 视觉学习
                 bitmap.SetPi(x, y, (byte)sum, (byte)sum, (byte)sum);
             }, 1, false);
         }
+        /// <summary>
+        /// 直方图
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="callback"></param>
+        /// <returns></returns>
         public static int[] Histogram(this Bitmap bitmap, Rectangle rectangle, Action<Bitmap> callback)
         {
             int[] values = new int[256];
@@ -739,6 +759,13 @@ namespace 视觉学习
             }
             return values;
         }
+        /// <summary>
+        /// 归一化直方图
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
         public static void Normalization(this Bitmap bitmap, Rectangle rectangle, byte a, byte b)
         {
             byte rMax = byte.MinValue, rMin = byte.MaxValue;
@@ -796,6 +823,15 @@ namespace 视觉学习
                     func(blue, rMin, rMax, rCoefficient));
             });
         }
+        /// <summary>
+        /// 归一化直方图
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="callback"></param>
+        /// <returns></returns>
         public static int[] NormalizationHistogram(this Bitmap bitmap, Rectangle rectangle, byte a, byte b, Action<Bitmap> callback)
         {
             bitmap.Normalization(rectangle, a, b);
@@ -1292,10 +1328,11 @@ namespace 视觉学习
             Action<Bitmap> callback1,
             Action<Bitmap> callback2)
         {
+            var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
             bitmap.GaussianFilter(rectangle, windowWidth, windowHeight, sigma);
-            var bitmapH = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            var bitmapH = bitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
             bitmapH.SobelHFilter(rectangle);
-            var bitmapV = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            var bitmapV = bitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
             bitmapV.SobelVFilter(rectangle);
 
             Func<double, byte> quantificationFunc = value =>
@@ -1473,7 +1510,15 @@ namespace 视觉学习
         }
 
 
-
+        /// <summary>
+        /// 霍夫变换
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="lineCount"></param>
+        /// <param name="callback1"></param>
+        /// <param name="callback2"></param>
+        /// <param name="callback3"></param>
         public static void HoughTransform(this Bitmap bitmap, Rectangle rectangle,
             int lineCount,
             Action<Bitmap> callback1,
@@ -1537,7 +1582,7 @@ namespace 视觉学习
             List<PixInfo> list = new List<PixInfo>();
             int current = 0;
             int ii = 0;
-            MoveWindowFunction._2dArrayMoveWindowFunction(
+            _2dArrayHandleFunction._2dArrayMoveWindowFunction(
                 count, new Rectangle(0, 0, _2rMax, 180),
                 1, 1, 1, 1, () => 0, (x, y, value, getter, setter) =>
                 {
@@ -1652,20 +1697,24 @@ namespace 视觉学习
         /// <param name="size"></param>
         /// <param name="callback"></param>
         public static void Dilate(this Bitmap bitmap, Rectangle rectangle, int size,
-            Action<Bitmap> callback)
+            Action<Bitmap> callback, Func<byte, byte, byte, byte> channelSelector = null)
         {
-            bitmap.OtsusMethod(rectangle, s =>
+            if (channelSelector == null)
             {
-
-            });
+                channelSelector = RgbToGray;
+            }
+            var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
             int current = 0;
-            var newBitmap = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+            Bitmap newBitmap = bitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            Bitmap newBitmap1 = null;
             while (current < size)
             {
-                bitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0,
+                newBitmap1 = newBitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0,
                 (x, y, r, g, b, getter, setter) =>
                 {
-                    if (r == 255)
+                    if (channelSelector(r, g, b) == 255)
                     {
                         return;
                     }
@@ -1675,7 +1724,7 @@ namespace 视觉学习
                         {
                             if (red != 0)
                             {
-                                newBitmap.SetPi(x, y, 255, 255, 255);
+                                newBitmap1.SetPi(x, y, 255, 255, 255);
                                 return false;
                             }
                         }
@@ -1683,13 +1732,15 @@ namespace 视觉学习
                         {
                             if (red != 0)
                             {
-                                newBitmap.SetPi(x, y, 255, 255, 255);
+                                newBitmap1.SetPi(x, y, 255, 255, 255);
                                 return false;
                             }
                         }
                         return true;
                     });
                 }, 0, false);
+                newBitmap.Dispose();
+                newBitmap = newBitmap1;
                 current++;
             }
             callback(newBitmap);
@@ -1702,20 +1753,24 @@ namespace 视觉学习
         /// <param name="size"></param>
         /// <param name="callback"></param>
         public static void Erode(this Bitmap bitmap, Rectangle rectangle, int size,
-            Action<Bitmap> callback)
+            Action<Bitmap> callback, Func<byte, byte, byte, byte> channelSelector = null)
         {
-            bitmap.OtsusMethod(rectangle, s =>
+            if (channelSelector == null)
             {
-
-            });
+                channelSelector = RgbToGray;
+            }
+            var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
             int current = 0;
-            var newBitmap = bitmap.Clone(rectangle, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+            var newBitmap = bitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            Bitmap newBitmap1 = null;
             while (current < size)
             {
-                bitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0,
+                newBitmap1 = newBitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage(rectangle, 1, 1, 1, 1, () => 0,
                 (x, y, r, g, b, getter, setter) =>
                 {
-                    if (r == 0)
+                    if (channelSelector(r, g, b) == 0)
                     {
                         return;
                     }
@@ -1725,7 +1780,7 @@ namespace 视觉学习
                         {
                             if (red == 0)
                             {
-                                newBitmap.SetPi(x, y, 0, 0, 0);
+                                newBitmap1.SetPi(x, y, 0, 0, 0);
                                 return false;
                             }
                         }
@@ -1733,13 +1788,15 @@ namespace 视觉学习
                         {
                             if (red == 0)
                             {
-                                newBitmap.SetPi(x, y, 0, 0, 0);
+                                newBitmap1.SetPi(x, y, 0, 0, 0);
                                 return false;
                             }
                         }
                         return true;
                     });
                 }, 0, false);
+                newBitmap.Dispose();
+                newBitmap = newBitmap1;
                 current++;
             }
             callback(newBitmap);
@@ -1754,10 +1811,6 @@ namespace 视觉学习
         public static void OpeningOperation(this Bitmap bitmap, Rectangle rectangle, int size,
             Action<Bitmap> callback)
         {
-            bitmap.OtsusMethod(rectangle, s =>
-            {
-
-            });
             bitmap.Erode(rectangle, size, s =>
             {
                 s.Dilate(rectangle, size, ss =>
@@ -1776,18 +1829,14 @@ namespace 视觉学习
         public static void ClosingOperation(this Bitmap bitmap, Rectangle rectangle, int size,
             Action<Bitmap> callback)
         {
-            bitmap.Canny(rectangle, 5, 5, 1.4, 50, 20, null, null, s =>
+            bitmap.Dilate(rectangle, size, ss =>
             {
-                s.Dilate(rectangle, size, ss =>
+                ss.Erode(rectangle, size, sss =>
                 {
-                    ss.Erode(rectangle, size, sss =>
-                    {
-                        callback(sss);
-                    });
+                    callback(sss);
                 });
             });
         }
-
         /// <summary>
         /// 形态学梯度
         /// </summary>
@@ -1806,7 +1855,6 @@ namespace 视觉学习
                 });
             });
         }
-
         /// <summary>
         /// 顶帽
         /// </summary>
@@ -2050,15 +2098,15 @@ namespace 视觉学习
                 }, 1);
             callback(matchX, matchY);
         }
-
         /// <summary>
-        /// 4-邻接连通域标记
+        /// 2-邻接连通域标记
         /// </summary>
         /// <param name="bitmap"></param>
-        public static void _4AdjacentConnectedDomainMarker(this Bitmap bitmap)
+        public static void _2AdjacentConnectedDomainMarker(this Bitmap bitmap, Action<int[][]> callback, Action<Bitmap> callback1)
         {
-            int connectionTotal = 1, tmp, zeroCount;
+            int connectionTotal = 0, tmp, tmp1;
             int[][] connectionCountArr = new int[bitmap.Height][];
+            bool topFlag = false, leftFlag = false;
             for (int i = 0; i < connectionCountArr.Length; i++)
             {
                 connectionCountArr[i] = new int[bitmap.Width];
@@ -2071,25 +2119,1223 @@ namespace 视觉学习
                     {
                         return;
                     }
-                    zeroCount = 0;
                     getter(-1, 0, (r, g, b) =>
                     {
-                        if (r == 0)
-                        {
-                            return;
-                        }
-                        tmp = connectionCountArr[y][x - 1];
-
+                        leftFlag = r > 0;
                     });
                     getter(0, -1, (r, g, b) =>
                     {
+                        topFlag = r > 0;
+                    });
+                    tmp = connectionTotal + 1;
+                    if (leftFlag)
+                    {
+                        tmp = connectionCountArr[y][x - 1];
+                    }
+                    if (topFlag)
+                    {
+                        tmp1 = connectionCountArr[y - 1][x];
+                        if (leftFlag && tmp1 > tmp)
+                        {
+                            tmp = tmp1;
+                        }
+                        else
+                        {
+                            tmp = tmp1;
+                        }
+                    }
+                    if (tmp == connectionTotal + 1)
+                    {
+                        connectionTotal++;
+                    }
+                    connectionCountArr[y][x] = tmp;
+                });
+            callback(connectionCountArr);
+            if (callback != null)
+            {
+                Color[] colors = new Color[]
+                {
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                };
+                Color color;
+                var newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage((x, y, red, blue, green, setter) =>
+                {
+                    tmp = connectionCountArr[y][x];
+                    if (tmp == 0)
+                    {
+                        return;
+                    }
+                    color = colors[tmp];
+                    setter(color.R, color.G, color.B);
+                });
+                callback1(newBitmap);
+            }
+        }
+        /// <summary>
+        /// 4-邻接连通域标记
+        /// </summary>
+        /// <param name="bitmap"></param>
+        public static void _4AdjacentConnectedDomainMarker(this Bitmap bitmap, Action<int[][]> callback, Action<Bitmap> callback1)
+        {
+            int connectionTotal = 0, tmp, tmp1;
+            int[][] connectionCountArr = new int[bitmap.Height][];
+            bool topFlag = false, leftFlag = false, topLeftFlag = false, topRightFlag = false;
+            for (int i = 0; i < connectionCountArr.Length; i++)
+            {
+                connectionCountArr[i] = new int[bitmap.Width];
+            }
+            bitmap.HandleImage(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        leftFlag = r > 0;
+                    });
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        topFlag = r > 0;
+                    });
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        topLeftFlag = r > 0;
+                    });
+                    getter(0, 1, (r, g, b) =>
+                    {
+                        topRightFlag = r > 0;
+                    });
+                    tmp = connectionTotal + 1;
+                    if (leftFlag)
+                    {
+                        tmp1 = connectionCountArr[y][x - 1];
+                        if (tmp1 > 0 && tmp1 < tmp)
+                        {
+                            tmp = tmp1;
+                        }
+                    }
+                    if (topFlag)
+                    {
+                        tmp1 = connectionCountArr[y - 1][x];
+                        if (tmp1 > 0 && tmp1 < tmp)
+                        {
+                            tmp = tmp1;
+                        }
+                    }
+                    if (topLeftFlag)
+                    {
+                        tmp1 = connectionCountArr[y][x + 1];
+                        if (tmp1 > 0 && tmp1 < tmp)
+                        {
+                            tmp = tmp1;
+                        }
+                    }
+                    if (topRightFlag)
+                    {
+                        tmp1 = connectionCountArr[y + 1][x];
+                        if (tmp1 > 0 && tmp1 < tmp)
+                        {
+                            tmp = tmp1;
+                        }
+                    }
+                    if (tmp == connectionTotal + 1)
+                    {
+                        connectionTotal++;
+                    }
+                    connectionCountArr[y][x] = tmp;
+                });
+            callback(connectionCountArr);
+            if (callback != null)
+            {
+                Color[] colors = new Color[]
+                {
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                };
+                Color color;
+                var newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage((x, y, red, blue, green, setter) =>
+                {
+                    tmp = connectionCountArr[y][x];
+                    if (tmp == 0)
+                    {
+                        return;
+                    }
+                    color = colors[tmp];
+                    setter(color.R, color.G, color.B);
+                });
+                callback1(newBitmap);
+            }
+        }
+        /// <summary>
+        /// 8-邻接连通域标记
+        /// </summary>
+        /// <param name="bitmap"></param>
+        public static void _8AdjacentConnectedDomainMarker(this Bitmap bitmap, Action<int[][]> callback, Action<Bitmap> callback1)
+        {
+            int connectionTotal = 0, tmp, min;
+            int[][] connectionCountArr = new int[bitmap.Height][];
+            for (int i = 0; i < connectionCountArr.Length; i++)
+            {
+                connectionCountArr[i] = new int[bitmap.Width];
+            }
+            bitmap.HandleImage(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                1, 1, 1, 1, () => 0,
+                (x, y, red, green, blue, getter, setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    min = connectionTotal + 1;
+                    getter((xx, yy, r, g, b) =>
+                        {
+                            if (xx == yy)
+                            {
+                                return true;
+                            }
+                            if (r > 0)
+                            {
+                                tmp = connectionCountArr[yy][xx];
+                                if (tmp == 0)
+                                {
+                                    return true;
+                                }
+                                if (tmp < min)
+                                {
+                                    min = tmp;
+                                }
+                            }
+                            return true;
+                        });
+                    if (min == connectionTotal + 1)
+                    {
+                        connectionTotal++;
+                    }
+                    connectionCountArr[y][x] = min;
+                }, 2);
+            callback(connectionCountArr);
+            if (callback1 != null)
+            {
+                Color[] colors = new Color[]
+                {
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                };
+                Color color;
+                var newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage((x, y, red, blue, green, setter) =>
+                {
+                    tmp = connectionCountArr[y][x];
+                    if (tmp == 0)
+                    {
+                        return;
+                    }
+                    color = colors[tmp];
+                    setter(color.R, color.G, color.B);
+                });
+                callback1(newBitmap);
+            }
+        }
+        /// <summary>
+        /// 4-连接数
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="callback"></param>
+        /// <param name="callback1"></param>
+        public static void _4LinkingNumber(this Bitmap bitmap, Action<byte[][]> callback, Action<Bitmap> callback1)
+        {
+            byte[][] buffer = new byte[bitmap.Height][];
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                var item = new byte[bitmap.Width];
+                buffer[i] = item;
+            }
+            byte x1 = 0, x2 = 0, x3 = 0, x4 = 0, x5 = 0, x6 = 0, x7 = 0, x8 = 0;
+            bitmap.HandleImage(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        x1 = (byte)(r > 0 ? 1 : 0);
+                    });
+                    getter(1, -1, (r, g, b) =>
+                    {
+                        x2 = (byte)(r > 0 ? 1 : 0);
+                    });
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        x3 = (byte)(r > 0 ? 1 : 0);
+                    });
+                    getter(-1, -1, (r, g, b) =>
+                    {
+                        x4 = (byte)(r > 0 ? 1 : 0);
+                    });
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        x5 = (byte)(r > 0 ? 1 : 0);
+                    });
+                    getter(-1, 1, (r, g, b) =>
+                    {
+                        x6 = (byte)(r > 0 ? 1 : 0);
+                    });
+                    getter(0, 1, (r, g, b) =>
+                    {
+                        x7 = (byte)(r > 0 ? 1 : 0); ;
+                    });
+                    getter(1, 1, (r, g, b) =>
+                    {
+                        x8 = (byte)(r > 0 ? 1 : 0); ;
+                    });
+                    buffer[y][x] = (byte)((x1 - x1 * x2 * x3) + (x3 - x3 * x4 * x5) + (x5 - x5 * x6 * x7) + (x7 - x7 * x8 * x1) + 1);
+                });
+            callback(buffer);
+            if (callback1 != null)
+            {
+                Color[] colors = new Color[]
+                {
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                };
+                Color color;
+                var newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage((x, y, red, blue, green, setter) =>
+                {
+                    x1 = buffer[y][x];
+                    if (x1 == 0)
+                    {
+                        return;
+                    }
+                    color = colors[x1];
+                    setter(color.R, color.G, color.B);
+                });
+                callback1(newBitmap);
+            }
+        }
+        /// <summary>
+        /// 8-连接数
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="callback"></param>
+        /// <param name="callback1"></param>
+        public static void _8LinkingNumber(this Bitmap bitmap, Action<byte[][]> callback, Action<Bitmap> callback1)
+        {
+            byte[][] buffer = new byte[bitmap.Height][];
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                var item = new byte[bitmap.Width];
+                buffer[i] = item;
+            }
+            byte x1 = 0, x2 = 0, x3 = 0, x4 = 0, x5 = 0, x6 = 0, x7 = 0, x8 = 0;
+            bitmap.HandleImage(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        x1 = (byte)(r > 0 ? 0 : 1);
+                    });
+                    getter(1, -1, (r, g, b) =>
+                    {
+                        x2 = (byte)(r > 0 ? 0 : 1);
+                    });
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        x3 = (byte)(r > 0 ? 0 : 1);
+                    });
+                    getter(-1, -1, (r, g, b) =>
+                    {
+                        x4 = (byte)(r > 0 ? 0 : 1);
+                    });
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        x5 = (byte)(r > 0 ? 0 : 1);
+                    });
+                    getter(-1, 1, (r, g, b) =>
+                    {
+                        x6 = (byte)(r > 0 ? 0 : 1);
+                    });
+                    getter(0, 1, (r, g, b) =>
+                    {
+                        x7 = (byte)(r > 0 ? 0 : 1); ;
+                    });
+                    getter(1, 1, (r, g, b) =>
+                    {
+                        x8 = (byte)(r > 0 ? 0 : 1); ;
+                    });
+                    buffer[y][x] = (byte)((x1 - x1 * x2 * x3) + (x3 - x3 * x4 * x5) + (x5 - x5 * x6 * x7) + (x7 - x7 * x8 * x1) + 1);
+                });
+            callback(buffer);
+            if (callback1 != null)
+            {
+                Color[] colors = new Color[]
+                {
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                    Color.Red,Color.Orange,Color.Yellow,Color.Green,Color.Cyan,Color.Blue,Color.Purple,
+                };
+                Color color;
+                var newBitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                newBitmap.HandleImage((x, y, red, blue, green, setter) =>
+                {
+                    x1 = buffer[y][x];
+                    if (x1 == 0)
+                    {
+                        return;
+                    }
+                    color = colors[x1];
+                    setter(color.R, color.G, color.B);
+                });
+                callback1(newBitmap);
+            }
+        }
+        /// <summary>
+        /// 细化处理
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="callback"></param>
+        /// <param name="callback1"></param>
+        public static void Refined(this Bitmap bitmap, Rectangle rectangle, Action<Bitmap> callback)
+        {
+            byte x1 = 0, x2 = 0, x3 = 0, x4 = 0, x5 = 0, x6 = 0, x7 = 0, x8 = 0;
+            byte _4Count, _8Count;
+            bool flag = false;
+            do
+            {
+                flag = false;
+                bitmap.HandleImage(
+                rectangle,
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+
+                    _4Count = 0;
+                    _8Count = 0;
+                    x1 = 0; x2 = 0; x3 = 0; x4 = 0; x5 = 0; x6 = 0; x7 = 0; x8 = 0;
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x1 = 1;
+                        }
+                        else
+                        {
+                            _4Count++;
+                        }
+                    });
+                    getter(1, -1, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x2 = 1;
+                        }
+                    });
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x3 = 1;
+                        }
+                        else
+                        {
+                            _4Count++;
+                        }
+                    });
+                    getter(-1, -1, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x4 = 1;
+                        }
+                    });
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x5 = 1;
+                        }
+                        else
+                        {
+                            _4Count++;
+                        }
+                    });
+                    getter(-1, 1, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x6 = 1;
+                        }
+                    });
+                    getter(0, 1, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x7 = 1;
+                        }
+                        else
+                        {
+                            _4Count++;
+                        }
+                    });
+                    getter(1, 1, (r, g, b) =>
+                    {
+                        if (r > 0)
+                        {
+                            _8Count++;
+                            x8 = 1;
+                        }
+                    });
+                    if (((x1 - x1 * x2 * x3) + (x3 - x3 * x4 * x5) + (x5 - x5 * x6 * x7) + (x7 - x7 * x8 * x1)) == 1
+                    && _4Count > 0 && _8Count > 2)
+                    {
+                        flag = true;
+                        setter(0, 0, 0);
+                    }
+                });
+            } while (flag);
+            callback(bitmap);
+        }
+        /// <summary>
+        /// Hilditch细化处理
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="callback"></param>
+        /// <param name="callback1"></param>
+        public static void HilditchRefined(this Bitmap bitmap, Rectangle rectangle, Action<Bitmap> callback)
+        {
+            sbyte[][] buffer = new sbyte[bitmap.Height][];
+            bitmap.RowForeach(true, new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                (r, g, b) => (sbyte)(g > 0 ? 1 : 0), s => (byte)s,
+                (height, buf, update) =>
+                {
+                    buffer[height] = buf;
+                });
+            sbyte x1 = 0, x2 = 0, x3 = 0, x4 = 0, x5 = 0, x6 = 0, x7 = 0, x8 = 0;
+            byte _4Count, _8Count, xSum, _1Count;
+            bool flag = false;
+            do
+            {
+                flag = false;
+                _2dArrayHandleFunction._2dArrayMoveWindowFunction(
+                buffer,
+                rectangle,
+                (int x, int y, sbyte value, Action<int, int, Action<sbyte>> getter, Action<sbyte> setter) =>
+                {
+                    if (value == 0)
+                    {
+                        return;
+                    }
+                    _4Count = 0;
+                    _8Count = 0;
+                    _1Count = 0;
+                    xSum = 0;
+                    x1 = 0; x2 = 0; x3 = 0; x4 = 0; x5 = 0; x6 = 0; x7 = 0; x8 = 0;
+                    getter(1, 0, r =>
+                    {
+                        x1 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+                        }
+                        else if (r == 0)
+                        {
+                            _4Count++;
+                        }
+                        else
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    getter(1, -1, r =>
+                    {
+                        x2 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+                        }
+                        else if (r < 0)
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    getter(0, -1, r =>
+                    {
+                        x3 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+
+                        }
+                        else if (r == 0)
+                        {
+                            _4Count++;
+                        }
+                        else
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    getter(-1, -1, r =>
+                     {
+                         x4 = r;
+                         if (r > 0)
+                         {
+                             _8Count++; xSum = (byte)(xSum + r);
+
+                         }
+                         else if (r < 0)
+                         {
+                             _1Count++; xSum = (byte)(xSum - r);
+                         }
+                     });
+                    getter(-1, 0, r =>
+                    {
+                        x5 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+
+                        }
+                        else if (r == 0)
+                        {
+                            _4Count++;
+                        }
+                        else
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    getter(-1, 1, r =>
+                    {
+                        x6 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+
+                        }
+                        else if (r < 0)
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    getter(0, 1, r =>
+                    {
+                        x7 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+
+                        }
+                        else if (r == 0)
+                        {
+                            _4Count++;
+                        }
+                        else
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    getter(1, 1, r =>
+                    {
+                        x8 = r;
+                        if (r > 0)
+                        {
+                            _8Count++; xSum = (byte)(xSum + r);
+                        }
+                        else if (r < 0)
+                        {
+                            _1Count++; xSum = (byte)(xSum - r);
+                        }
+                    });
+                    if (((x1 - x1 * x2 * x3) + (x3 - x3 * x4 * x5) + (x5 - x5 * x6 * x7) + (x7 - x7 * x8 * x1)) == 1
+                    && _4Count > 1 && xSum > 2 && _8Count > 1)
+                    {
+                        if (_1Count == 0)
+                        {
+
+                        }
+                        setter(-1);
+                    }
+                });
+                _2dArrayHandleFunction._2dArrayForeach(buffer, rectangle, (x, y, value, setter) =>
+                {
+                    if (value == -1)
+                    {
+                        flag = true;
+                        setter(0);
+                    }
+                });
+            } while (flag);
+            var newBitmap = new Bitmap(bitmap.Width, bitmap.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            newBitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
+            {
+                if (buffer[y][x] > 0)
+                {
+                    setter(255, 255, 255);
+                }
+            });
+            callback(newBitmap);
+        }
+        /// <summary>
+        /// ZhangSuen细化处理
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="callback"></param>        
+        public static void ZhangSuenRefined(this Bitmap bitmap, Rectangle rectangle, Action<Bitmap> callback)
+        {
+            byte x246, x468, x268, _8Count = 0, lastValue = 0, value, _1to0Count = 0;
+            bool flag = false;
+            var full = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            var newBitmap = bitmap.Clone(full, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            Action<byte, byte, byte> action = (r, g, b) =>
+            {
+                value = r;
+                if (lastValue > value)
+                {
+                    _1to0Count++;
+                }
+                lastValue = value;
+                if (r == 0)
+                {
+                    _8Count++;
+                }
+            };
+            do
+            {
+                flag = false;
+                bitmap.HandleImage(
+                rectangle,
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<int, int, byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    x246 = 0;
+                    x468 = 0;
+                    _8Count = 0;
+                    _1to0Count = 0;
+
+                    //2
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        lastValue = r;
                         if (r == 0)
                         {
-                            return;
+                            _8Count++;
+                            x246++;
                         }
+                    });
+                    //3
+                    getter(1, -1, action);
+                    //4
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        action(r, g, b);
+                        if (r == 0)
+                        {
+                            x246++;
+                            x468++;
+                        }
+                    });
+                    //5
+                    getter(1, 1, action);
+                    //6
+                    getter(0, 1, (r, g, b) =>
+                    {
+                        action(r, g, b);
+                        if (r == 0)
+                        {
+                            x468++;
+                        }
+                    });//7
+                    getter(-1, 1, action);
+                    //8
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        action(r, g, b);
+                        if (r == 0)
+                        {
+                            x246++;
+                            x468++;
+                        }
+                    });
+                    //9
+                    getter(-1, -1, action);
+                    //2
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        value = r;
+                        if (lastValue > value)
+                        {
+                            _1to0Count++;
+                        }
+                    });
+                    if (_1to0Count == 1
+                    && _8Count < 6 && _8Count > 2
+                    && x246 > 0 && x468 > 0)
+                    {
+                        flag = true;
+                        //newBitmap.SetPi(x, y, 0, 0, 0);
+                        setter(0, 0, 0, 0, 0);
+                    }
+                });
+                //bitmap.Dispose();
+                //bitmap = newBitmap.Clone(full, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            } while (flag);
+            do
+            {
+                flag = false;
+                bitmap.HandleImage(
+                rectangle,
+                (int x, int y, byte red, byte green, byte blue, Action<int, int, Action<byte, byte, byte>> getter, Action<int, int, byte, byte, byte> setter) =>
+                {
+                    if (red == 0)
+                    {
+                        return;
+                    }
+                    x246 = 0;
+                    x268 = 0;
+                    _8Count = 0;
+                    _1to0Count = 0;
+                    //2
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        lastValue = r;
+                        if (r == 0)
+                        {
+                            _8Count++;
+                            x246++;
+                            x268++;
+                        }
+                    });
+                    //3
+                    getter(1, -1, action);
+                    //4
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        action(r, g, b);
+                        if (r == 0)
+                        {
+                            x246++;
+                        }
+                    });
+                    //5
+                    getter(1, 1, action);
+                    //6
+                    getter(0, 1, (r, g, b) =>
+                    {
+                        action(r, g, b);
+                        if (r == 0)
+                        {
+                            x246++;
+                            x268++;
+                        }
+                    });
+                    //7
+                    getter(-1, 1, action);
+                    //8
+                    getter(-1, 0, (r, g, b) =>
+                    {
+                        action(r, g, b);
+                        if (r == 0)
+                        {
+                            x246++;
+                            x268++;
+                        }
+                    });
+                    //9
+                    getter(-1, -1, action);
+                    //2
+                    getter(0, -1, (r, g, b) =>
+                    {
+                        value = r;
+                        if (lastValue > value)
+                        {
+                            _1to0Count++;
+                        }
+                    });
+                    if (_1to0Count == 1
+                    && _8Count < 6 && _8Count > 2
+                    && x246 > 0 && x268 > 0)
+                    {
+                        flag = true;
+                        //newBitmap.SetPi(x, y, 0, 0, 0);
+                        setter(0, 0, 0, 0, 0);
+                    }
+                });
+                //bitmap.Dispose();
+                //bitmap = newBitmap.Clone(full, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            } while (flag);
+            callback(bitmap);
+        }
+        /// <summary>
+        /// Hog
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        public static void Hog(this Bitmap bitmap, Rectangle rectangle, Action<double[][][]> eigenvector, Action<Bitmap, Bitmap> callback1, Action<Bitmap> callback2, Action<Bitmap> callback3)
+        {
+            int yy = 0, xx = 0;
+            int yEnd = 0, xEnd = 0;
+            double[] item;
+            double sum = 0;
+            bitmap.GradientMagnitudeDirectionUnsigned(rectangle,
+                (magnitude, direction) =>
+                {
+                    double[][][] result = GradientHistogram(magnitude, direction, rectangle, (double[][][] value) =>
+                    {
+                        int height = value.Length, width = value[0].Length;
+                        double[][][] newResult = new double[value.Length][][];
+                        for (int i = 0; i < height; i++)
+                        {
+                            var itemItem = new double[width][];
+                            for (int j = 0; j < width; j++)
+                            {
+                                itemItem[j] = new double[9];
+                            }
+                            newResult[i] = itemItem;
+                        }
+                        _2dArrayHandleFunction.ImageSegmentation(
+                            new Rectangle(0, 0, value[0].Length, value.Length),
+                            2, 2, 1, 1, (x, y, rec) =>
+                        {
+                            yEnd = rec.Bottom;
+                            xEnd = rec.Right;
+                            sum = 0;
+                            for (yy = rec.Y; yy < yEnd; yy++)
+                            {
+                                for (xx = rec.X; xx < xEnd; xx++)
+                                {
+                                    item = value[yy][xx];
+                                    for (int i = 0; i < item.Length; i++)
+                                    {
+                                        if (sum < item[i])
+                                        {
+                                            sum = item[i];
+                                        }
+                                    }
+                                }
+                            }
+                            for (yy = rec.Y; yy < yEnd; yy++)
+                            {
+                                for (xx = rec.X; xx < xEnd; xx++)
+                                {
+                                    item = value[yy][xx];
+                                    for (int i = 0; i < item.Length; i++)
+                                    {
+                                        newResult[yy][xx][i] = item[i] / sum;
+                                    }
+                                }
+                            }
+                        });
+                        eigenvector(newResult);
+                        if (callback3 != null)
+                        {
+                            int index = 0;
+                            var newBitmap = new Bitmap(value[0].Length * 3, value.Length * 3, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                            yEnd = value.Length;
+                            xEnd = value[0].Length;
+                            for (yy = 0; yy < yEnd; yy++)
+                            {
+                                for (xx = 0; xx < xEnd; xx++)
+                                {
+                                    index = 0;
+                                    item = newResult[yy][xx];
+                                    newBitmap.HandleImage(new Rectangle(xx * 3, yy * 3, 3, 3),
+                                        (xxx, yyy, setter) =>
+                                        {
+                                            sum = item[index] * 255;
+                                            setter((byte)sum, (byte)sum, (byte)sum);
+                                            index++;
+                                        });
+                                }
+                            }
+                            callback3(newBitmap);
+                        }
+                    }, callback2);
+                },
+                callback1);
+        }
+        /// <summary>
+        /// 梯度幅值梯度方向
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="callback"></param>
+        /// <param name="callback1"></param>
+        public static void GradientMagnitudeDirectionUnsigned(this Bitmap bitmap, Rectangle rectangle,
+            Action<double[][], byte[][]> callback,
+            Action<Bitmap, Bitmap> callback1)
+        {
+            int i;
+            double[][] magnitude = new double[bitmap.Height][];
+            byte[][] direction = new byte[bitmap.Height][];
+            for (i = 0; i < rectangle.Height; i++)
+            {
+                magnitude[i] = new double[rectangle.Width];
+                direction[i] = new byte[rectangle.Width];
+            }
+            int gx = 0, gy = 0;
+            double anglePart = Math.PI / 180;
+            double _180 = Math.PI;
+            double tmp = 0;
+            bitmap.HandleImage(rectangle,
+                (int x, int y,
+                Action<int, int, Action<byte, byte, byte>> getter,
+                Action<byte, byte, byte> setter) =>
+                {
+                    getter(1, 0, (r, g, b) =>
+                    {
+                        getter(-1, 0, (rr, gg, bb) =>
+                        {
+                            getter(0, 1, (rrr, ggg, bbb) =>
+                            {
+                                getter(0, -1, (rrrr, gggg, bbbb) =>
+                                {
+                                    gx = RgbToGray(r, g, b) - RgbToGray(rr, gg, bb);
+                                    gy = RgbToGray(rrr, ggg, bbb) - RgbToGray(rrrr, gggg, bbbb);
+                                    magnitude[y][x] = Math.Sqrt(gx * gx + gy * gy);
+                                    tmp = Math.Atan(gy * 1.0 / gx);
+                                    if (tmp < 0)
+                                    {
+                                        tmp = tmp + _180;
+                                    }
+                                    direction[y][x] = (byte)(tmp / anglePart);
+                                });
+                            });
+                        });
+                    });
+                }, 0, false);
+            if (callback1 != null)
+            {
+                Color[] colors = new Color[]
+                {
+                    Color.FromArgb(0,0,0),
+                    Color.FromArgb(255,0,0),
+                    Color.FromArgb(255,255,0),
+                    Color.FromArgb(255,255,255),
+                    Color.FromArgb(0,255,255),
+                    Color.FromArgb(0,255,0),
+                    Color.FromArgb(255,0,255),
+                    Color.FromArgb(0,0,0),
 
+                    Color.FromArgb(128,0,0),
+                    Color.FromArgb(128,128,0),
+                    Color.FromArgb(128,128,128),
+                    Color.FromArgb(0,128,128),
+                    Color.FromArgb(0,128,0),
+                    Color.FromArgb(128,0,128),
+
+                    Color.FromArgb(64,0,0),
+                    Color.FromArgb(64,64,0),
+                    Color.FromArgb(64,64,64),
+                    Color.FromArgb(0,64,64),
+                };
+                byte tmp1 = 0;
+                Color color;
+                var magnitudeBitmap = new Bitmap(bitmap.Width, bitmap.Height,
+                    System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                magnitudeBitmap.HandleImage(rectangle, (x, y, setter) =>
+                {
+                    tmp1 = (byte)magnitude[y][x];
+                    setter(tmp1, tmp1, tmp1);
+                });
+                var directionBitmap = new Bitmap(bitmap.Width, bitmap.Height,
+                   System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                directionBitmap.HandleImage(rectangle, (x, y, setter) =>
+                {
+                    color = colors[direction[y][x] / 20];
+                    setter(color.R, color.G, color.B);
+                });
+                callback1(magnitudeBitmap, directionBitmap);
+            }
+            callback(magnitude, direction);
+        }
+
+        /// <summary>
+        /// 梯度直方图
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        public static double[][][] GradientHistogram(double[][] magnitude, byte[][] direction, Rectangle rectangle,
+            Action<double[][][]> callback, Action<Bitmap> callbcak1)
+        {
+            int windowSize = 8;
+            int y = 0, x = 0, xEnd = 0, yEnd = 0;
+            double[] magnitudeItem = null;
+            byte[] directionItem = null;
+            double[][][] histogram = new double[magnitude.Length / windowSize][][];
+            for (int i = 0; i < histogram.Length; i++)
+            {
+                var item = new double[magnitude[0].Length / windowSize][];
+                for (int j = 0; j < item.Length; j++)
+                {
+                    item[j] = new double[9];
+                }
+                histogram[i] = item;
+            }
+            int index = 0;
+            byte directionItemItem = 0;
+            double magnitudeItemItem = 0;
+            double[] histogramItem = null;
+            _2dArrayHandleFunction.ImageSegmentation(rectangle, windowSize, windowSize, (xx, yy, rec) =>
+              {
+                  xEnd = rec.Right;
+                  yEnd = rec.Bottom;
+                  histogramItem = histogram[yy][xx];
+                  for (y = rec.Y; y < yEnd; y++)
+                  {
+                      magnitudeItem = magnitude[y];
+                      directionItem = direction[y];
+                      for (x = rec.X; x < xEnd; x++)
+                      {
+                          index = directionItem[x] / 20;
+                          directionItemItem = (byte)(directionItem[x] % 20);
+                          magnitudeItemItem = magnitudeItem[x];
+                          if (index > 8)
+                          {
+                              index = 0;
+                          }
+                          histogramItem[index] += ((20 - directionItemItem) * magnitudeItemItem);
+                          if (index > 7)
+                          {
+                              index = 0;
+                          }
+                          histogramItem[index] += (directionItemItem * magnitudeItemItem);
+                      }
+                  }
+              });
+            if (callbcak1 != null)
+            {
+                var newBitmap = new Bitmap(histogram[0].Length * 3, histogram.Length * 3, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                yEnd = histogram.Length;
+                xEnd = histogram[0].Length;
+                for (int yy = 0; yy < yEnd; yy++)
+                {
+                    for (int xx = 0; xx < xEnd; xx++)
+                    {
+                        index = 0;
+                        var item = histogram[yy][xx];
+                        newBitmap.HandleImage(new Rectangle(xx * 3, yy * 3, 3, 3),
+                            (xxx, yyy, setter) =>
+                            {
+                                var sum = (item[index] * 255).FitRange(0, 255);
+                                setter((byte)sum, (byte)sum, (byte)sum);
+                                index++;
+                            });
+                    }
+                }
+                callbcak1(newBitmap);
+            }
+            callback(histogram);
+            return histogram;
+        }
+
+        /// <summary>
+        /// 色彩跟踪
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="colorAngleMin"></param>
+        /// <param name="colorAngleMax"></param>
+        public static void ColorTracking(this Bitmap bitmap, Rectangle rectangle, int colorAngleMin, int colorAngleMax, Action<Bitmap> callback)
+        {
+            var newBitmap = new Bitmap(rectangle.Width, rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
+            {
+                RgbToHSV(r, g, b, (h, s, v) =>
+                {
+                    if (h >= colorAngleMin && h <= colorAngleMax)
+                    {
+                        newBitmap.SetPi(x - rectangle.X, y - rectangle.Y, 255, 255, 255);
+                    }
+                });
+            });
+            callback(newBitmap);
+        }
+        /// <summary>
+        /// 掩膜
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="colorAngleMin"></param>
+        /// <param name="colorAngleMax"></param>
+        public static void Masking(this Bitmap bitmap, Rectangle rectangle, int colorAngleMin, int colorAngleMax, Action<Bitmap> callback)
+        {
+            var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            var newBitmap = bitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmap.HandleImage(rectangle, (x, y, r, g, b, setter) =>
+            {
+                RgbToHSV(r, g, b, (h, s, v) =>
+                {
+                    if (h >= colorAngleMin && h <= colorAngleMax)
+                    {
+                        newBitmap.SetPi(x, y, 0, 0, 0);
+                    }
+                });
+            });
+            callback(newBitmap);
+        }
+        /// <summary>
+        /// 掩膜加形态学处理
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <param name="rectangle"></param>
+        /// <param name="colorAngleMin"></param>
+        /// <param name="colorAngleMax"></param>
+        public static void MaskingMorphology(this Bitmap bitmap, Rectangle rectangle, int colorAngleMin, int colorAngleMax, int size, Action<Bitmap> callback)
+        {
+            var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            var newBitmap = bitmap.Clone(rec, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            bitmap.ColorTracking(rectangle, colorAngleMin, colorAngleMax,
+                s1 =>
+                {
+                    s1.ClosingOperation(rectangle, size, ss =>
+                    {
+                        ss.OpeningOperation(rectangle, size, sss =>
+                          {
+                              sss.HandleTwoImage(newBitmap, rectangle, (x, y, r1, g1, b1, r2, g2, b2, setter1, setter2) =>
+                              {
+                                  if (r1 == 255)
+                                  {
+                                      setter2(0, 0, 0);
+                                  }
+                              });
+                          });
                     });
                 });
+            callback(newBitmap);
         }
     }
 }

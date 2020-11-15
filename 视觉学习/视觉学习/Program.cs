@@ -282,26 +282,26 @@ namespace 视觉学习
             #endregion
             #region 41-50           
             //41 42 43
-            //index = 41;
-            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
-            //bitmap.Canny(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
-            //    5, 5, 1.4,
-            //    100, 20,
-            //    (edgeBitmap, angleBitmap) =>
-            //{
-            //    edgeBitmap.Save(string.Format("{0}_edge.bmp", index));
-            //    angleBitmap.Save(string.Format("{0}_angle.bmp", index));
-            //},
-            //edgeBitmap =>
-            //{
-            //    index = 42;
-            //    edgeBitmap.Save(string.Format("{0}_edge1.bmp", index));
-            //},
-            //edgeBitmap =>
-            //{
-            //    index = 43;
-            //    edgeBitmap.Save(string.Format("{0}_edge2.bmp", index));
-            //});
+            index = 41;
+            Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
+            bitmap.Canny(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                5, 5, 1.4,
+                100, 20,
+                (edgeBitmap, angleBitmap) =>
+            {
+                edgeBitmap.Save(string.Format("{0}_edge.bmp", index));
+                angleBitmap.Save(string.Format("{0}_angle.bmp", index));
+            },
+            edgeBitmap =>
+            {
+                index = 42;
+                edgeBitmap.Save(string.Format("{0}_edge1.bmp", index));
+            },
+            edgeBitmap =>
+            {
+                index = 43;
+                edgeBitmap.Save(string.Format("{0}_edge2.bmp", index));
+            });
             //44 45 46
             //index = 44;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\thorino.jpg");
@@ -324,15 +324,25 @@ namespace 视觉学习
             //47
             //index = 47;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
-            //bitmap.Dilate(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 1,
-            //    s=>
+            //var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            //bitmap.OtsusMethod(rec, s =>
+            //{
+
+            //});
+            //bitmap.Dilate(rec, 1,
+            //    s =>
             //    {
             //        s.Save(string.Format("{0}.bmp", index));
             //    });
             //48
             //index = 48;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
-            //bitmap.Erode(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 1,
+            //var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            //bitmap.OtsusMethod(rec, s =>
+            //{
+
+            //});
+            //bitmap.Erode(rec, 2,
             //    s =>
             //    {
             //        s.Save(string.Format("{0}.bmp", index));
@@ -340,7 +350,12 @@ namespace 视觉学习
             //49
             //index = 49;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
-            //bitmap.OpeningOperation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 1,
+            //var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            //bitmap.OtsusMethod(rec, s =>
+            //{
+
+            //});
+            //bitmap.OpeningOperation(rec, 1,
             //    s =>
             //    {
             //        s.Save(string.Format("{0}.bmp", index));
@@ -348,11 +363,15 @@ namespace 视觉学习
             //50
             //index = 50;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_41_50\\imori.jpg");
-            //bitmap.ClosingOperation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 1,
-            //    s =>
+            //var rec = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            //bitmap.Canny(rec, 5, 5, 1.4, 50, 20, null, null, s =>
+            //{
+            //    s.ClosingOperation(rec, 1,
+            //    ss =>
             //    {
-            //        s.Save(string.Format("{0}.bmp", index));
+            //        ss.Save(string.Format("{0}.bmp", index));
             //    });
+            //});
             #endregion
             #region 51-60
             //51
@@ -385,7 +404,7 @@ namespace 视觉学习
             //});
             //bitmap.Save(string.Format("{0}.bmp", index));
             //55
-            index = 55;
+            //index = 55;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
             //Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
             //bitmap.TemplateMatchBySumOfAbsoluteDifference(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
@@ -397,7 +416,7 @@ namespace 视觉学习
             //});
             //bitmap.Save(string.Format("{0}.bmp", index));
             //56
-            index = 56;
+            //index = 56;
             //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori.jpg");
             //Bitmap template = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\imori_part.jpg");
             //bitmap.TemplateMatchByNormalizationCrossCorrelation(new Rectangle(0, 0, bitmap.Width, bitmap.Height), template, (x, y) =>
@@ -421,6 +440,117 @@ namespace 视觉学习
             //});
             //bitmap.Save(string.Format("{0}.bmp", index));
             //58
+            //index = 58;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\seg.png");
+            //bitmap._8AdjacentConnectedDomainMarker(
+            //s =>
+            //{
+
+            //},
+            //s =>
+            //{
+            //    s.Save(string.Format("{0}.bmp", index));
+            //});
+            //59
+            //index = 59;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_51_60\\seg.png");
+            //bitmap._8AdjacentConnectedDomainMarker(
+            //s => { },
+            //s =>
+            //{
+            //    s.Save(string.Format("{0}.bmp", index));
+            //});
+            //60
+            #endregion
+            #region 61-70
+            //61
+            //index = 61;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\renketsu.png");
+            //bitmap._4LinkingNumber(
+            //s => { },
+            //s =>
+            //{
+            //    s.Save(string.Format("{0}.bmp", index));
+            //});
+            //62
+            //index = 62;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\renketsu.png");
+            //bitmap._8LinkingNumber(
+            //s => { },
+            //s =>
+            //{
+            //    s.Save(string.Format("{0}.bmp", index));
+            //});
+            //63
+            //index = 63;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\gazo.png");
+            //bitmap.Refined(new Rectangle(0, 0, bitmap.Width, bitmap.Height), s =>
+            //    {
+            //        s.Save(string.Format("{0}.bmp", index));
+            //    });
+            //64           
+            //index = 64;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\gazo.png");
+            //bitmap.HilditchRefined(new Rectangle(0, 0, bitmap.Width, bitmap.Height), s =>
+            //{
+            //    s.Save(string.Format("{0}.bmp", index));
+            //});
+            //65           
+            //index = 65;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\gazo.png");
+            //bitmap.ZhangSuenRefined(new Rectangle(0, 0, bitmap.Width, bitmap.Height), s =>
+            //{
+            //    s.Save(string.Format("{0}.bmp", index));
+            //});
+            //66-69
+            //index = 66;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\imori.jpg");
+            //bitmap.Hog(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+            //s =>
+            //{
+            //    //69
+            //}, (magnitude, direction) =>
+            //{
+            //    index = 66;
+            //    magnitude.Save(string.Format("{0}_magnitude.bmp", index));
+            //    direction.Save(string.Format("{0}_direction.bmp", index));
+            //}, s =>
+            //{
+            //    index = 67;
+            //    s.Save(string.Format("{0}_histogram.bmp", index));
+            //},
+            //s =>
+            //{
+            //    index = 68;
+            //    s.Save(string.Format("{0}_feature.bmp", index));
+            //});
+            //70
+            //index = 70;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_61_70\\imori.jpg");
+            //bitmap.ColorTracking(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 180, 260,
+            //    s =>
+            //    {
+            //        s.Save(string.Format("{0}.bmp", index));
+            //    });
+            #endregion
+            #region 71-80
+            //71
+            //index = 71;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_71_80\\imori.jpg");
+            //bitmap.Masking(new Rectangle(0, 0, bitmap.Width, bitmap.Height), 180, 260,
+            //    s =>
+            //    {
+            //        s.Save(string.Format("{0}.bmp", index));
+            //    });
+            //72
+            //index = 72;
+            //Bitmap bitmap = new Bitmap("..\\..\\..\\..\\ImageProcessing100Wen-master\\Question_71_80\\imori.jpg");
+            //bitmap.MaskingMorphology(
+            //    new Rectangle(0, 0, bitmap.Width, bitmap.Height), 180, 260, 5,
+            //    s =>
+            //    {
+            //        s.Save(string.Format("{0}.bmp", index));
+            //    });
 
             #endregion
         }
